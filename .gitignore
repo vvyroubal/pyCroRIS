@@ -25,6 +25,9 @@ env/
 # Marimo cache
 .marimo/
 
+# Claude Code
+.claude/
+
 # Eksportrani podaci
 output/
 *.csv
