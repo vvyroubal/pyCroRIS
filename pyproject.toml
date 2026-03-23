@@ -22,3 +22,18 @@ crosbi = "main:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["crosbi*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers -v"
+markers = [
+    "integration: testovi koji zahtijevaju mrežni pristup (preskočiti s -m 'not integration')",
+]
+
+[tool.coverage.run]
+source = ["crosbi"]
+omit = ["tests/*", "main.py", "notebook.py"]
+
+[tool.coverage.report]
+fail_under = 77
+show_missing = true

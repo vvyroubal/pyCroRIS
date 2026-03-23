@@ -24,6 +24,7 @@ Python klijent i interaktivna bilježnica za dohvat i vizualizaciju podataka iz 
 - [Marimo bilježnica](#marimo-bilježnica)
 - [Programsko korištenje](#programsko-korištenje)
 - [Izvoz podataka](#izvoz-podataka)
+- [Testiranje](#testiranje)
 - [Referenca API-ja](#referenca-api-ja)
 
 ---
@@ -139,9 +140,13 @@ CROSBI/
 │   └── export/
 │       ├── json_export.py
 │       └── csv_export.py
+├── tests/
+│   ├── conftest.py                # Zajednički učici
+│   └── unit/                      # Jedinični testovi
 ├── notebook.py                    # Marimo interaktivna bilježnica
 ├── main.py                        # Ulazna točka sučelja naredbenog retka
-├── requirements.txt               # Popis ovisnosti
+├── requirements.txt               # Popis ovisnosti (pokretanje)
+├── requirements-dev.txt           # Popis ovisnosti (razvoj i testiranje)
 ├── pyproject.toml
 └── .env.example
 ```
@@ -321,6 +326,64 @@ to_csv(lista_objekata, "izlaz/rezultati.csv")
 ```
 
 Izvozne funkcije automatski stvaraju odredišni direktorij ako ne postoji.
+
+---
+
+## Testiranje
+
+Projekt sadrži jediničnu testnu zbirku koja pokriva HTTP klijent, konfiguracijske postavke, modele podataka i izvozne module.
+
+### Instalacija razvojnih ovisnosti
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+### Pokretanje testova
+
+```bash
+# Sve jedinične provjere
+pytest tests/unit/
+
+# S prikazom pokrivenosti izvornog koda
+pytest tests/unit/ --cov=crosbi --cov-report=term-missing
+
+# HTML izvješće o pokrivenosti (otvara se u pregledniku)
+pytest tests/unit/ --cov=crosbi --cov-report=html
+# → htmlcov/index.html
+
+# Samo određeni modul
+pytest tests/unit/models/ -v
+pytest tests/unit/test_client.py -v
+```
+
+### Preskakanje integracijskih testova
+
+Integracijski testovi zahtijevaju mrežni pristup CroRIS poslužitelju. Tijekom razvoja moguće ih je preskočiti:
+
+```bash
+pytest -m "not integration"
+```
+
+### Struktura testne zbirke
+
+```
+tests/
+├── conftest.py                  # Zajednički učici (fixtures) za sve testove
+└── unit/
+    ├── models/
+    │   ├── test_common.py       # TranslatedText, Klasifikacija, get_text()
+    │   ├── test_projekt.py      # Model Projekt
+    │   ├── test_znanstvenik.py  # Model Znanstvenik i srodni modeli
+    │   └── test_ostali_modeli.py # Osoba, Ustanova, Financijer, Casopis, Dogadanje...
+    ├── endpoints/
+    │   └── test_projekti.py     # Endpointovi projekata
+    ├── export/
+    │   ├── test_json_export.py  # DataclassEncoder, to_json(), from_json()
+    │   └── test_csv_export.py   # to_csv(), HasToDict protokol
+    ├── test_client.py           # CrorisClient: sjednica, get(), paginate()...
+    └── test_config.py           # Config: zadane vrijednosti, okolišne varijable
+```
 
 ---
 
