@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtualno okruženje
+.venv/
+venv/
+env/
+
+# Osjetljivi podaci
+.env
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Marimo cache
+.marimo/
+
+# Eksportrani podaci
+output/
+*.csv
+*.json
+!.env.example
