@@ -1,6 +1,18 @@
-# CroRIS CROSBI Explorer
+# CroRIS Explorer
 
-Python klijent i interaktivni notebook za dohvat i vizualizaciju podataka iz [CroRIS Projekti API-ja](https://www.croris.hr/projekti-api).
+Python klijent i interaktivni notebook za dohvat i vizualizaciju podataka iz svih [CroRIS REST API](https://wiki.srce.hr/spaces/CRORIS/pages/49283931/Programska+su%C4%8Delja+CroRIS-a) modula.
+
+## Pokriveni API moduli
+
+| Modul | Base URL | Pristup |
+|---|---|---|
+| **Projekti API** | `https://www.croris.hr/projekti-api` | Javno (s auth) |
+| **Ustanove API** | `https://www.croris.hr/ustanove-api` | Javno |
+| **CROSBI API** | `https://www.croris.hr/crosbi-api` | Javno |
+| **Oprema API** | `https://www.croris.hr/oprema-api` | Javno (s auth) |
+| **Časopisi API** | `https://www.croris.hr/casopisi-api` | Javno |
+| **Događanja API** | `https://www.croris.hr/dogadanja-api` | Javno |
+| **Znanstvenici API** | `https://www.croris.hr/znanstvenici-api` | Zahtijeva odobrenje MZO-a |
 
 ## Sadržaj
 
@@ -11,6 +23,7 @@ Python klijent i interaktivni notebook za dohvat i vizualizaciju podataka iz [Cr
 - [Marimo notebook](#marimo-notebook)
 - [Programsko korištenje](#programsko-korištenje)
 - [Export podataka](#export-podataka)
+- [API referenca](#api-referenca)
 
 ---
 
@@ -19,21 +32,12 @@ Python klijent i interaktivni notebook za dohvat i vizualizaciju podataka iz [Cr
 Zahtijeva Python 3.11+.
 
 ```bash
-# Kloniraj ili preuzmi projekt
-cd /path/to/CROSBI
-
-# Instaliraj u editable modu (preporučeno za razvoj)
 pip install -e .
-
-# Ili samo dependencije
-pip install requests urllib3 python-dotenv marimo plotly pandas
 ```
 
 ---
 
 ## Konfiguracija
-
-Kopiraj `.env.example` u `.env` i unesi kredencijale:
 
 ```bash
 cp .env.example .env
@@ -44,11 +48,11 @@ CRORIS_USERNAME=your_username
 CRORIS_PASSWORD=your_password
 
 # Opcionalno
-CRORIS_PAGE_SIZE=50    # broj rezultata po stranici (5–100)
-CRORIS_TIMEOUT=30      # timeout HTTP zahtjeva u sekundama
+CRORIS_PAGE_SIZE=50
+CRORIS_TIMEOUT=30
 ```
 
-Alternativno, kredencijale možeš proslijediti direktno kroz CLI (`--username`, `--password`) ili programski kroz `Config` objekt.
+Kredencijale možeš proslijediti i direktno kroz CLI (`--username`, `--password`) ili programski kroz `Config` objekt.
 
 ---
 
@@ -56,29 +60,41 @@ Alternativno, kredencijale možeš proslijediti direktno kroz CLI (`--username`,
 
 ```
 CROSBI/
-├── crosbi/                      # Python paket
-│   ├── config.py                # Konfiguracija (Config dataclass, .env)
-│   ├── client.py                # HTTP klijent (session, retry, paginacija, HAL+JSON)
-│   ├── models/                  # Typed dataclass modeli
-│   │   ├── common.py            # TranslatedText, Klasifikacija
-│   │   ├── projekt.py           # Projekt
-│   │   ├── osoba.py             # Osoba
-│   │   ├── ustanova.py          # Ustanova
-│   │   ├── publikacija.py       # Publikacija
-│   │   ├── financijer.py        # Financijer, FinancijerProgram
-│   │   └── mozvag.py            # MOZVAG modeli (agregirani podaci)
-│   ├── endpoints/               # Funkcije po API resursu
-│   │   ├── projekti.py
-│   │   ├── osobe.py
-│   │   ├── ustanove.py
-│   │   ├── publikacije.py
-│   │   ├── financijeri.py
-│   │   └── mozvag.py
-│   └── export/                  # Export u JSON i CSV
+├── crosbi/
+│   ├── config.py                  # Config + base URL konstante za sve module
+│   ├── client.py                  # HTTP klijent (session, retry, paginacija, HAL+JSON)
+│   ├── models/
+│   │   ├── common.py              # TranslatedText, Klasifikacija
+│   │   ├── projekt.py             # Projekt (projekti-api)
+│   │   ├── osoba.py               # Osoba (projekti-api)
+│   │   ├── ustanova.py            # Ustanova (projekti-api)
+│   │   ├── publikacija.py         # Publikacija (projekti-api)
+│   │   ├── financijer.py          # Financijer (projekti-api)
+│   │   ├── mozvag.py              # MOZVAG modeli (projekti-api)
+│   │   ├── ustanova_reg.py        # UstanovaReg, Podrucje, Polje, Grana (ustanove-api)
+│   │   ├── publikacija_crosbi.py  # PublikacijaCrosbi + srodni (crosbi-api)
+│   │   ├── oprema.py              # Oprema, Usluga, UslugaCjenik (oprema-api)
+│   │   ├── casopis.py             # Casopis, PublikacijaCasopis (casopisi-api)
+│   │   ├── dogadanje.py           # Dogadanje, MjestoOdrzavanja (dogadanja-api)
+│   │   └── znanstvenik.py         # Znanstvenik, Zvanje, RadniOdnos... (znanstvenici-api)
+│   ├── endpoints/
+│   │   ├── projekti.py            # projekti-api: projekti
+│   │   ├── osobe.py               # projekti-api: osobe
+│   │   ├── ustanove.py            # projekti-api: ustanove
+│   │   ├── publikacije.py         # projekti-api: publikacije
+│   │   ├── financijeri.py         # projekti-api: financijeri
+│   │   ├── mozvag.py              # projekti-api: MOZVAG
+│   │   ├── upisnik.py             # ustanove-api: MZO upisnik, PPG, CroRIS ustanove
+│   │   ├── publikacije_crosbi.py  # crosbi-api: CROSBI publikacije (+ import)
+│   │   ├── oprema_api.py          # oprema-api: oprema, usluge, cjenik, datoteke
+│   │   ├── casopisi.py            # casopisi-api: časopisi
+│   │   ├── dogadanja.py           # dogadanja-api: događanja
+│   │   └── znanstvenici.py        # znanstvenici-api: znanstvenici, akreditacije
+│   └── export/
 │       ├── json_export.py
 │       └── csv_export.py
-├── notebook.py                  # Marimo interaktivni notebook
-├── main.py                      # CLI entry point
+├── notebook.py                    # Marimo interaktivni notebook
+├── main.py                        # CLI entry point
 ├── pyproject.toml
 └── .env.example
 ```
@@ -88,107 +104,100 @@ CROSBI/
 ## CLI korištenje
 
 ```bash
-# Opći oblik
-python main.py [--username U] [--password P] [--output datoteka] [--format json|csv] <resurs> [opcije]
+python main.py [--username U] [--password P] [-o datoteka] [-f json|csv] <modul> [opcije]
 ```
 
-### Projekti
+### Projekti API
 
 ```bash
-# Dohvati sve projekte (paginacija automatska) — spremi u JSON
-python main.py projekt --output projekti.json
-
-# Dohvati sve projekte i spremi u CSV
-python main.py projekt --output projekti.csv --format csv
-
-# Dohvati jedan projekt po ID-u
-python main.py projekt --id 12345
-
-# Dohvati sve projekte ustanove po MBU kodu
-python main.py projekt --mbu 0000000
-```
-
-### Osobe
-
-```bash
-# Dohvati osobu po internom ID-u
-python main.py osoba --id 9876
-
-# Dohvati osobu po OIB-u
-python main.py osoba --oib 12345678901
-
-# Dohvati sve osobe na projektu
-python main.py osoba --projekt-id 12345 --output osobe.csv --format csv
-```
-
-### Ustanove
-
-```bash
-# Dohvati ustanovu po ID-u
-python main.py ustanova --id 42
-
-# Dohvati sve ustanove na projektu
-python main.py ustanova --projekt-id 12345
+python main.py projekt --output projekti.csv -f csv     # svi projekti
+python main.py projekt --id 12345                        # jedan projekt
+python main.py projekt --mbu 0000000                     # projekti ustanove
+python main.py osoba --projekt-id 12345                  # osobe na projektu
+python main.py ustanova --projekt-id 12345               # ustanove na projektu
 ```
 
 ### MOZVAG (agregirani podaci)
 
 ```bash
-# Popis svih ustanova
-python main.py mozvag ustanove --output ustanove.csv --format csv
-
-# Popis svih financijera
-python main.py mozvag financijeri
-
-# Projekti ustanove za godinu
-python main.py mozvag projekti --ustanova-id 123 --godina 2024 --output projekti_2024.csv --format csv
-
-# Sažetak projekata istraživača po MBZ-u
+python main.py mozvag ustanove -o ustanove.csv -f csv
+python main.py mozvag projekti --ustanova-id 123 --godina 2024
 python main.py mozvag osoba --mbz 123456 --godina 2024
+```
 
-# Sažetak projekata istraživača po OIB-u
-python main.py mozvag osoba --oib 12345678901 --ustanova-id 123 --godina 2024
+### Ustanove API
+
+```bash
+python main.py upisnik sve -o ustanove.csv -f csv        # sve aktivne
+python main.py upisnik znanstvene                         # znanstvene ustanove
+python main.py upisnik visoka-ucilista                    # visoka učilišta
+python main.py upisnik jzi                                # javni znan. instituti
+python main.py upisnik ppg                                # PPG područja
+python main.py upisnik id 42                              # po internom ID-u
+python main.py upisnik mbu 0000000                        # po MBU kodu
+```
+
+### CROSBI API
+
+```bash
+python main.py crosbi --id 123456                         # publikacija po ID-u
+python main.py crosbi --mbz 123456                        # publikacije osobe (MBZ)
+python main.py crosbi --osoba-id 9876                     # publikacije osobe (ID)
+python main.py crosbi --projekt-id 12345                  # publikacije projekta
+```
+
+### Oprema API
+
+```bash
+python main.py oprema -o oprema.csv -f csv                # sva oprema
+python main.py oprema --id 456                            # jedna oprema
+python main.py oprema --usluge -o usluge.csv -f csv       # sve usluge
+```
+
+### Časopisi API
+
+```bash
+python main.py casopisi -o casopisi.csv -f csv
+python main.py casopisi --id 789
+```
+
+### Događanja API
+
+```bash
+python main.py dogadanja -o dogadanja.csv -f csv
+python main.py dogadanja --id 101
+```
+
+### Znanstvenici API
+
+```bash
+python main.py znanstvenici --oib 12345678901
+python main.py znanstvenici --mbz 123456
+python main.py znanstvenici --akreditacije-org-id 21 -o akred.csv -f csv
 ```
 
 ---
 
 ## Marimo notebook
 
-Interaktivni notebook za vizualizaciju podataka u web pregledniku.
-
 ```bash
-# Pokretanje kao web aplikacija (read-only)
-marimo run notebook.py
-
-# Pokretanje u interaktivnom editor modu
-marimo edit notebook.py
+marimo run notebook.py    # web app (http://localhost:2718)
+marimo edit notebook.py   # interaktivni editor
 ```
 
-Notebook se otvara na `http://localhost:2718`.
+### Dostupni upiti u notebooku
 
-### Funkcionalnosti notebooka
+| Kategorija | Upiti | Vizualizacije |
+|---|---|---|
+| **Projekti** | MOZVAG ustanove, MOZVAG projekti, projekti po MBU, detalji projekta, osobe/financijeri/publikacije projekta | Bar po gradu, pie po vrsti, top financijeri, Gantt timeline, pie uloga |
+| **Ustanove** | Sve aktivne, znanstvene, visoka učilišta, JZI, PPG područja | Bar po gradu, bar PPG područja |
+| **CROSBI** | Publikacije osobe (MBZ), publikacija po ID-u | Pie po vrsti |
+| **Oprema** | Popis opreme, popis usluga | Bar po kategoriji |
+| **Časopisi** | Popis časopisa | Bar po zemlji izdavanja |
+| **Događanja** | Popis događanja | Bar po godini |
+| **Znanstvenici** | Pretraga po OIB-u, MBZ-u, akreditacije org. jedinice | Tablica |
 
-| Sekcija | Opis |
-|---|---|
-| **Konfiguracija** | Unos korisničkog imena, lozinke i veličine stranice |
-| **Odabir podataka** | Dropdown s 8 tipova upita |
-| **Dinamički inputi** | Pojavljuju se ovisno o odabiru (ID, MBU, godina, MBZ...) |
-| **Tablica rezultata** | Interaktivna tablica s filterima i sortiranjem |
-| **Vizualizacije** | Plotly grafovi prilagođeni odabranom tipu podataka |
-| **Download** | Preuzimanje rezultata kao CSV ili JSON |
-
-#### Dostupni upiti i vizualizacije
-
-| Upit | Vizualizacija |
-|---|---|
-| MOZVAG — popis ustanova | Bar chart ustanova po gradu |
-| MOZVAG — projekti ustanove za godinu | Pie po vrsti projekta · Top 15 financijera · Gantt timeline |
-| MOZVAG — sažetak projekata osobe | Tablica (broj zn. i ostalih projekata) |
-| Detalji projekta po ID-u | Tablica |
-| Projekti ustanove po MBU | Tablica |
-| Osobe na projektu | Pie raspodjele uloga |
-| Publikacije projekta | Bar po vrsti · Trend po godini |
-| Financijeri projekta | Bar chart iznosa po financijeru |
+Sve kombinacije podržavaju **download CSV/JSON** gumbima.
 
 ---
 
@@ -197,64 +206,77 @@ Notebook se otvara na `http://localhost:2718`.
 ```python
 from crosbi.config import Config
 from crosbi.client import CrorisClient
-from crosbi.endpoints import projekti, osobe, mozvag
+from crosbi.endpoints import projekti, upisnik, publikacije_crosbi, znanstvenici
 from crosbi.export import to_json, to_csv
 
-# Inicijalizacija klijenta
-cfg = Config(username="user", password="pass", page_size=100)
-client = CrorisClient(cfg)
+client = CrorisClient(Config(username="u", password="p"))
 
-# Dohvat projekata ustanove (MOZVAG)
-projekti_2024 = mozvag.get_projekti_ustanove(ustanova_id=123, godina=2024, client=client)
-for p in projekti_2024:
-    print(p.naziv, p.projekt_iznos, p.projekt_valuta)
+# Projekti po MBU
+ps = projekti.get_projekti_po_ustanovi("0000000", client=client)
 
-# Dohvat svih projekata (automatska paginacija)
-for projekt in projekti.list_projekti(client=client):
-    print(projekt.get_title("hr"), projekt.pocetak, projekt.kraj)
+# Sve znanstvene ustanove (MZO upisnik)
+zust = upisnik.get_znanstvene_ustanove(client=client)
 
-# Dohvat osoba na projektu
-osobe_lista = osobe.get_osobe_projekta(projekt_id=12345, client=client)
-for o in osobe_lista:
-    print(o.puno_ime, o.klasifikacija.naziv if o.klasifikacija else "—")
+# CROSBI publikacije osobe po MBZ-u
+pub = publikacije_crosbi.get_publikacije_osobe_by_mbz("123456", client=client)
+
+# Znanstvenik po OIB-u
+z = znanstvenici.get_znanstvenik_by_oib("12345678901", client=client)
+print(z.puno_ime, z.orcid, z.max_zvanje)
+
+# PPG klasifikacija
+podrucja = upisnik.get_sva_podrucja(client=client)
 
 # Export
-to_csv(projekti_2024, "projekti_2024.csv")
-to_json(projekti_2024, "projekti_2024.json")
+to_csv(ps, "projekti.csv")
+to_json(zust, "ustanove.json")
 ```
 
-### Višejezični tekst
-
-Polja kao `title`, `summary` i `keywords` dolaze u više jezika. Koristite helper metode:
+### Import publikacija (CROSBI API)
 
 ```python
-projekt = projekti.get_projekt(12345, client=client)
-print(projekt.get_title("hr"))   # naziv na hrvatskom
-print(projekt.get_title("en"))   # naziv na engleskom
+from crosbi.endpoints.publikacije_crosbi import import_casopis_rad
+
+status = import_casopis_rad([
+    {
+        "tip": 760,
+        "godina": "2024",
+        "status": 965,
+        "suradnja_medjunarodna": "DA",
+        "autor_string": "Horvat, Ivan; Kovač, Ana",
+        "doi": "10.1234/example.2024",
+        "ml": [{"jezik": "en", "trans": "O", "naslov": "Example title"}],
+    }
+], client=client)
 ```
 
 ---
 
 ## Export podataka
 
-Svi modeli implementiraju `to_dict()` metodu pogodnu za export.
-
 ```python
 from crosbi.export import to_json, to_csv
 
-# Spremanje u JSON
 to_json(lista_objekata, "output/rezultati.json")
-
-# Spremanje u CSV
 to_csv(lista_objekata, "output/rezultati.csv")
 ```
 
-Export funkcije automatski kreiraju direktorij ako ne postoji.
+Export automatski kreira direktorij ako ne postoji.
 
 ---
 
 ## API referenca
 
-- **Swagger UI:** https://www.croris.hr/projekti-api/swagger-ui/index.html
-- **OpenAPI spec:** https://www.croris.hr/projekti-api/v3/api-docs
-- **Wiki dokumentacija:** https://wiki.srce.hr/spaces/CRORIS/pages/97878205/Projekti+API
+| Modul | Swagger UI | OpenAPI spec |
+|---|---|---|
+| Projekti | `/projekti-api/swagger-ui/index.html` | `/projekti-api/v3/api-docs` |
+| Ustanove | `/ustanove-api/api-docs.html` | `/ustanove-api/v3/api-docs` |
+| CROSBI | `/crosbi-api/swagger-ui/index.html` | `/crosbi-api/v3/api-docs` |
+| Oprema | `/oprema-api/swagger-ui/index.html` | `/oprema-api/v3/api-docs` |
+| Časopisi | `/casopisi-api/swagger-ui/index.html` | `/casopisi-api/v3/api-docs` |
+| Događanja | `/dogadanja-api/swagger-ui/index.html` | `/dogadanja-api/v3/api-docs` |
+| Znanstvenici | `/znanstvenici-api/api-docs.html` | `/znanstvenici-api/v3/api-docs` |
+
+Base za sve URL-ove: `https://www.croris.hr`
+
+**Wiki dokumentacija:** https://wiki.srce.hr/spaces/CRORIS/pages/49283931/Programska+su%C4%8Delja+CroRIS-a
