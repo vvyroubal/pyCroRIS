@@ -402,3 +402,10 @@ tests/
 Osnovna adresa za sve URL-ove: `https://www.croris.hr`
 
 **Wiki dokumentacija:** https://wiki.srce.hr/spaces/CRORIS/pages/49283931/Programska+su%C4%8Delja+CroRIS-a
+
+---
+
+## Licenca
+
+Ovaj projekt objavljen je pod [MIT licencom](LICENSE).
+Uvjeti korištenja CroRIS API-ja (SRCE / Ministarstvo znanosti i obrazovanja) primjenjuju se neovisno.
