@@ -17,7 +17,7 @@ Pokretanje:
 
 import marimo
 
-__generated_with = "0.8.0"
+__generated_with = "0.20.4"
 app = marimo.App(width="wide", app_title="CroRIS Explorer")
 
 
@@ -32,20 +32,18 @@ def _imports():
     import pandas as pd
     import plotly.express as px
 
-    return mo, pd, px, sys, Path
+    return mo, pd, px
 
 
 @app.cell
 def _header(mo):
-    mo.md(
-        """
-        # CroRIS Explorer
+    mo.md("""
+    # CroRIS Explorer
 
-        Interaktivni pregled podataka iz svih [CroRIS REST API](https://wiki.srce.hr/spaces/CRORIS/pages/49283931/Programska+su%C4%8Delja+CroRIS-a) modula.
+    Interaktivni pregled podataka iz svih [CroRIS REST API](https://wiki.srce.hr/spaces/CRORIS/pages/49283931/Programska+su%C4%8Delja+CroRIS-a) modula.
 
-        ---
-        """
-    )
+    ---
+    """)
     return
 
 
@@ -55,11 +53,11 @@ def _auth_inputs(mo):
     password_input = mo.ui.text(placeholder="lozinka", label="Lozinka", kind="password")
     page_size_input = mo.ui.slider(start=5, stop=100, step=5, value=50, label="Stranica")
     mo.hstack([username_input, password_input, page_size_input], gap=2)
-    return username_input, password_input, page_size_input
+    return page_size_input, password_input, username_input
 
 
 @app.cell
-def _build_client(mo, username_input, password_input, page_size_input):
+def _build_client(mo, page_size_input, password_input, username_input):
     import os
     from crosbi.config import Config
     from crosbi.client import CrorisClient
@@ -75,12 +73,15 @@ def _build_client(mo, username_input, password_input, page_size_input):
         else mo.callout(mo.md("Nisu uneseni kredencijali — postavi u `.env` ili unesi iznad."), kind="warn")
     )
     _status
-    return cfg, client
+    return (client,)
 
 
 @app.cell
 def _mode_selector(mo):
-    mo.md("---\n## Odabir podataka")
+    mo.md("""
+    ---
+    ## Odabir podataka
+    """)
     return
 
 
@@ -173,16 +174,30 @@ def _conditional_inputs(mo, mode):
 
     mo.hstack(_inputs, gap=2)
     return (
-        ustanova_id_input, godina_input, projekt_id_input,
-        mbu_input, mbz_input, oib_input, pub_id_input, fetch_btn,
+        fetch_btn,
+        godina_input,
+        mbu_input,
+        mbz_input,
+        oib_input,
+        projekt_id_input,
+        pub_id_input,
+        ustanova_id_input,
     )
 
 
 @app.cell
 def _fetch(
-    mo, mode, client, fetch_btn,
-    ustanova_id_input, godina_input, projekt_id_input,
-    mbu_input, mbz_input, oib_input, pub_id_input,
+    client,
+    fetch_btn,
+    godina_input,
+    mbu_input,
+    mbz_input,
+    mo,
+    mode,
+    oib_input,
+    projekt_id_input,
+    pub_id_input,
+    ustanova_id_input,
 ):
     from crosbi.endpoints import (
         mozvag, projekti, osobe, ustanove, financijeri,
@@ -251,40 +266,41 @@ def _fetch(
 
     if error_msg:
         mo.callout(mo.md(error_msg), kind="danger")
-    else:
+    elif result is not None:
         mo.callout(mo.md(f"Dohvaćeno **{len(result)}** zapisa."), kind="success")
-
-    return result, error_msg
+    result = result if result is not None else []
+    return error_msg, result
 
 
 @app.cell
-def _to_df(mo, pd, result, error_msg):
+def _to_df(error_msg, mo, pd, result):
     mo.stop(error_msg is not None or not result)
-    rows = [item.to_dict() if hasattr(item, "to_dict") else vars(item) for item in result]
+    rows = [
+        item.to_dict() if hasattr(item, "to_dict") else vars(item)
+        for item in result
+        if item is not None
+    ]
     df = pd.DataFrame(rows) if rows else pd.DataFrame()
     mo.md("---\n## Tablica rezultata")
     return (df,)
 
 
 @app.cell
-def _table(mo, df):
+def _table(df, mo):
     mo.stop(df is None or df.empty)
     mo.ui.dataframe(df)
     return
 
 
 @app.cell
-def _viz_header(mo, df):
+def _viz_header(df, mo):
     mo.stop(df is None or df.empty)
     mo.md("---\n## Vizualizacije")
     return
 
 
-# --- Vizualizacije po tipu ---
-
-
 @app.cell
-def _viz_mozvag_ustanove(mo, px, df, mode):
+def _viz_mozvag_ustanove(df, mo, mode, px):
     mo.stop(mode.value != "mozvag_ustanove")
     _fig = px.bar(
         df.dropna(subset=["grad"]).groupby("grad").size().reset_index(name="broj"),
@@ -298,7 +314,7 @@ def _viz_mozvag_ustanove(mo, px, df, mode):
 
 
 @app.cell
-def _viz_mozvag_projekti(mo, px, df, mode, pd):
+def _viz_mozvag_projekti(df, mo, mode, pd, px):
     mo.stop(mode.value != "mozvag_projekti")
 
     _v = df["vrsta"].value_counts().reset_index()
@@ -334,7 +350,7 @@ def _viz_mozvag_projekti(mo, px, df, mode, pd):
 
 
 @app.cell
-def _viz_upisnik(mo, px, df, mode):
+def _viz_upisnik(df, mo, mode, px):
     mo.stop(mode.value not in ("upisnik_sve", "upisnik_znan", "upisnik_vu", "upisnik_jzi"))
     if "grad" in df.columns:
         _fig = px.bar(
@@ -348,7 +364,7 @@ def _viz_upisnik(mo, px, df, mode):
 
 
 @app.cell
-def _viz_osobe(mo, px, df, mode):
+def _viz_osobe(df, mo, mode, px):
     mo.stop(mode.value != "osobe_projekta")
     if "uloga" in df.columns:
         _v = df["uloga"].value_counts().reset_index()
@@ -359,7 +375,7 @@ def _viz_osobe(mo, px, df, mode):
 
 
 @app.cell
-def _viz_crosbi(mo, px, df, mode, pd):
+def _viz_crosbi(df, mo, mode, px):
     mo.stop(mode.value != "crosbi_osoba_mbz")
     if "vrsta" in df.columns and not df.empty:
         _v = df["vrsta"].value_counts().reset_index()
@@ -371,7 +387,7 @@ def _viz_crosbi(mo, px, df, mode, pd):
 
 
 @app.cell
-def _viz_casopisi(mo, px, df, mode):
+def _viz_casopisi(df, mo, mode, px):
     mo.stop(mode.value != "casopisi_list")
     if "drzava" in df.columns:
         _d = df["drzava"].value_counts().head(20).reset_index()
@@ -385,7 +401,7 @@ def _viz_casopisi(mo, px, df, mode):
 
 
 @app.cell
-def _viz_dogadanja(mo, px, df, mode, pd):
+def _viz_dogadanja(df, mo, mode, pd, px):
     mo.stop(mode.value != "dogadanja_list")
     if "datum_pocetka" in df.columns:
         _df = df.dropna(subset=["datum_pocetka"]).copy()
@@ -399,7 +415,7 @@ def _viz_dogadanja(mo, px, df, mode, pd):
 
 
 @app.cell
-def _viz_oprema(mo, px, df, mode):
+def _viz_oprema(df, mo, mode, px):
     mo.stop(mode.value != "oprema_list")
     if "kategorija" in df.columns:
         _k = df["kategorija"].value_counts().reset_index()
@@ -413,7 +429,7 @@ def _viz_oprema(mo, px, df, mode):
 
 
 @app.cell
-def _viz_ppg(mo, px, df, mode):
+def _viz_ppg(df, mo, mode, px):
     mo.stop(mode.value != "ppg_podrucja")
     if not df.empty:
         _fig = px.bar(df.sort_values("sifra"), x="sifra", y="naziv",
@@ -424,18 +440,15 @@ def _viz_ppg(mo, px, df, mode):
     return
 
 
-# --- Export ---
-
-
 @app.cell
-def _export_section(mo, df):
+def _export_section(df, mo):
     mo.stop(df is None or df.empty)
     mo.md("---\n## Preuzimanje podataka")
     return
 
 
 @app.cell
-def _download(mo, df):
+def _download(df, mo):
     mo.stop(df is None or df.empty)
     mo.hstack([
         mo.download(

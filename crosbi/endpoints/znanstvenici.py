@@ -19,7 +19,9 @@ def get_znanstvenik_by_oib(
     # Može vratiti jedan objekt ili kolekciju
     if "_embedded" in data:
         items = data["_embedded"].get("znanstvenici", [])
-        return Znanstvenik.from_dict(items[0]) if items else None
+        if not items:
+            raise ValueError(f"Nije pronađen znanstvenik s OIB-om: {oib}")
+        return Znanstvenik.from_dict(items[0])
     return Znanstvenik.from_dict(data)
 
 
@@ -31,7 +33,9 @@ def get_znanstvenik_by_mbz(
     data = c.get(_url("/znanstvenik"), params={"maticniBroj": mbz})
     if "_embedded" in data:
         items = data["_embedded"].get("znanstvenici", [])
-        return Znanstvenik.from_dict(items[0]) if items else None
+        if not items:
+            raise ValueError(f"Nije pronađen znanstvenik s MBZ-om: {mbz}")
+        return Znanstvenik.from_dict(items[0])
     return Znanstvenik.from_dict(data)
 
 

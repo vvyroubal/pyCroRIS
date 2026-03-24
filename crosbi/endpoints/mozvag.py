@@ -9,17 +9,33 @@ from ..models.mozvag import (
 )
 
 
+def _extract_list(data: object, *keys: str) -> list:
+    """Izvuci listu iz odgovora — podržava i ravnu listu i HAL+JSON omotač."""
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        embedded = data.get("_embedded", {})
+        for key in keys:
+            if key in embedded:
+                return embedded[key]
+        # Ako nema _embedded, vrati prazan list
+        return []
+    return []
+
+
 def get_ustanove(client: Optional[CrorisClient] = None) -> list[UstanovaMozvag]:
     """Dohvati popis svih ustanova (MOZVAG direktorij)."""
     c = client or get_client()
-    items = c.get("/mozvag/institutions")
+    data = c.get("/mozvag/institutions")
+    items = _extract_list(data, "institutions", "institucije", "ustanove")
     return [UstanovaMozvag.from_dict(item) for item in items]
 
 
 def get_financijere(client: Optional[CrorisClient] = None) -> list[FinancijerMozvag]:
     """Dohvati popis svih financijera s programima (MOZVAG direktorij)."""
     c = client or get_client()
-    items = c.get("/mozvag/funders")
+    data = c.get("/mozvag/funders")
+    items = _extract_list(data, "funders", "financijeri")
     return [FinancijerMozvag.from_dict(item) for item in items]
 
 
@@ -28,7 +44,8 @@ def get_projekti_ustanove(
 ) -> list[ProjektMozvag]:
     """Dohvati sve projekte za ustanovu u zadanoj godini."""
     c = client or get_client()
-    items = c.get(f"/mozvag/{ustanova_id}/{godina}")
+    data = c.get(f"/mozvag/{ustanova_id}/{godina}")
+    items = _extract_list(data, "projekti", "projects")
     return [ProjektMozvag.from_dict(item) for item in items]
 
 
