@@ -1,3 +1,4 @@
+"""Modeli za MOZVAG agregirane podatke o projektima (projekti-api /mozvag)."""
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -6,12 +7,15 @@ from .common import TranslatedText, get_text
 
 @dataclass
 class ProgramMozvag:
+    """Program financiranja u MOZVAG direktoriju."""
+
     program_id: Optional[int] = None
     naziv_hr: Optional[str] = None
     naziv_en: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ProgramMozvag":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             program_id=data.get("programId"),
             naziv_hr=data.get("nazivHr"),
@@ -21,6 +25,8 @@ class ProgramMozvag:
 
 @dataclass
 class FinancijerMozvag:
+    """Financijer s popisom programa iz MOZVAG direktorija."""
+
     financijer_id: int
     naziv_hr: Optional[str] = None
     naziv_en: Optional[str] = None
@@ -29,6 +35,7 @@ class FinancijerMozvag:
 
     @classmethod
     def from_dict(cls, data: dict) -> "FinancijerMozvag":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             financijer_id=data["financijerId"],
             naziv_hr=data.get("nazivHr"),
@@ -40,6 +47,8 @@ class FinancijerMozvag:
 
 @dataclass
 class UstanovaMozvag:
+    """Ustanova iz MOZVAG direktorija s višejezičnim nazivom i kontaktom."""
+
     ustanova_id: int
     adresa: Optional[str] = None
     oib: Optional[str] = None
@@ -49,10 +58,12 @@ class UstanovaMozvag:
     naziv: list[TranslatedText] = field(default_factory=list)
 
     def get_naziv(self, lang: str = "hr") -> str:
+        """Vrati naziv ustanove na zadanom jeziku (zadano: hr)."""
         return get_text(self.naziv, lang)
 
     @classmethod
     def from_dict(cls, data: dict) -> "UstanovaMozvag":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             ustanova_id=data["ustanovaId"],
             adresa=data.get("adresa"),
@@ -64,6 +75,7 @@ class UstanovaMozvag:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "ustanova_id": self.ustanova_id,
             "naziv": self.get_naziv("hr"),
@@ -76,6 +88,8 @@ class UstanovaMozvag:
 
 @dataclass
 class ProjektFinancijerMozvag:
+    """Financijer unutar MOZVAG projekta s iznosom i valutom."""
+
     financijer_id: Optional[int] = None
     naziv_hr: Optional[str] = None
     naziv_en: Optional[str] = None
@@ -84,6 +98,7 @@ class ProjektFinancijerMozvag:
 
     @classmethod
     def from_dict(cls, data: dict) -> "ProjektFinancijerMozvag":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             financijer_id=data.get("financijerId"),
             naziv_hr=data.get("nazivHr"),
@@ -95,6 +110,8 @@ class ProjektFinancijerMozvag:
 
 @dataclass
 class ProjektMozvag:
+    """Projekt iz MOZVAG agregatora s iznosima po ustanovi i financijerima."""
+
     projekt_id: int
     naziv: Optional[str] = None
     start_date: Optional[str] = None
@@ -111,6 +128,7 @@ class ProjektMozvag:
 
     @classmethod
     def from_dict(cls, data: dict) -> "ProjektMozvag":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             projekt_id=data["projektId"],
             naziv=data.get("naziv"),
@@ -130,6 +148,7 @@ class ProjektMozvag:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "projekt_id": self.projekt_id,
             "naziv": self.naziv,
@@ -149,6 +168,8 @@ class ProjektMozvag:
 
 @dataclass
 class OsobaMozvag:
+    """Sažetak projektnog angažmana osobe iz MOZVAG endpointa."""
+
     osoba_id: Optional[int] = None
     ustanova_id: Optional[int] = None
     ime: Optional[str] = None
@@ -159,14 +180,17 @@ class OsobaMozvag:
 
     @property
     def puno_ime(self) -> str:
+        """Vrati puno ime (ime + prezime) kao jedinstven niz znakova."""
         return " ".join(p for p in [self.ime, self.prezime] if p)
 
     @property
     def ukupno_projekata(self) -> int:
+        """Vrati ukupan broj projekata (znanstveni + ostali)."""
         return self.znanstveni_projekti + self.ostali_projekti
 
     @classmethod
     def from_dict(cls, data: dict) -> "OsobaMozvag":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             osoba_id=data.get("osobaId"),
             ustanova_id=data.get("ustanovaid"),

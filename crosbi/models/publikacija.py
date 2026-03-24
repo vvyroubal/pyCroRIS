@@ -1,3 +1,4 @@
+"""Model publikacije vezane uz projekt iz CroRIS Projekti API-ja."""
 from dataclasses import dataclass
 from typing import Optional
 
@@ -6,6 +7,8 @@ from .common import Klasifikacija
 
 @dataclass
 class Publikacija:
+    """Publikacija vezana uz projekt u CroRIS Projekti API-ju."""
+
     cf_res_publ_id: int
     naslov: Optional[str] = None
     autori: Optional[str] = None
@@ -21,6 +24,7 @@ class Publikacija:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Publikacija":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             cf_res_publ_id=data["cfResPublId"],
             naslov=data.get("naslov"),
@@ -41,6 +45,7 @@ class Publikacija:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.cf_res_publ_id,
             "naslov": self.naslov,

@@ -1,3 +1,4 @@
+"""HTTP klijent za CroRIS REST API-je s podrškom za HAL+JSON i paginaciju."""
 from typing import Any, Generator, Iterator, Optional
 
 import requests
@@ -11,10 +12,12 @@ class CrorisClient:
     """HTTP klijent za CroRIS Projekti API (HAL+JSON)."""
 
     def __init__(self, cfg: Optional[Config] = None) -> None:
+        """Inicijalizira klijenta s danom konfiguracijom ili globalnom zadanom."""
         self.cfg = cfg or default_config
         self.session = self._build_session()
 
     def _build_session(self) -> requests.Session:
+        """Izgraditi requests.Session s autentikacijom, zaglavljima i retry adapterom."""
         session = requests.Session()
         if self.cfg.username and self.cfg.password:
             session.auth = (self.cfg.username, self.cfg.password)

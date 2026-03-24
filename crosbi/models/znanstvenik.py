@@ -5,16 +5,21 @@ from typing import Optional
 
 @dataclass
 class ZnanstvenikUstanova:
+    """Ustanova vezana uz zvanje ili zaposlenje znanstvenika."""
+
     id: Optional[int] = None
     naziv: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ZnanstvenikUstanova":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(id=data.get("id"), naziv=data.get("naziv"))
 
 
 @dataclass
 class Zvanje:
+    """Znanstveno ili nastavno zvanje s datumom izbora i ustanovom."""
+
     id: int
     naziv: Optional[str] = None
     kratica: Optional[str] = None
@@ -24,6 +29,7 @@ class Zvanje:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Zvanje":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             naziv=data.get("naziv"),
@@ -38,6 +44,7 @@ class Zvanje:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "naziv": self.naziv,
@@ -50,6 +57,8 @@ class Zvanje:
 
 @dataclass
 class AkademskiStupanj:
+    """Akademski stupanj (npr. dr. sc., mag.) s datumom stjecanja."""
+
     id: int
     naziv: Optional[str] = None
     kratica: Optional[str] = None
@@ -57,6 +66,7 @@ class AkademskiStupanj:
 
     @classmethod
     def from_dict(cls, data: dict) -> "AkademskiStupanj":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             naziv=data.get("naziv"),
@@ -65,6 +75,7 @@ class AkademskiStupanj:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "naziv": self.naziv,
@@ -75,6 +86,8 @@ class AkademskiStupanj:
 
 @dataclass
 class Zaposlenje:
+    """Zaposlenje znanstvenika u ustanovi s radnim mjestom i trajanjem."""
+
     id: int
     ustanova: Optional[ZnanstvenikUstanova] = None
     datum_od: Optional[str] = None
@@ -85,6 +98,7 @@ class Zaposlenje:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Zaposlenje":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             ustanova=(
@@ -100,6 +114,7 @@ class Zaposlenje:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "ustanova": self.ustanova.naziv if self.ustanova else None,
@@ -113,6 +128,8 @@ class Zaposlenje:
 
 @dataclass
 class Znanstvenik:
+    """Profil znanstvenika iz CroRIS Znanstvenici API-ja sa zvanjima, stupnjevima i zaposlenjima."""
+
     id: int
     ime: Optional[str] = None
     prezime: Optional[str] = None
@@ -132,10 +149,12 @@ class Znanstvenik:
 
     @property
     def puno_ime(self) -> str:
+        """Vrati puno ime (ime + prezime) kao jedinstven niz znakova."""
         return " ".join(p for p in [self.ime, self.prezime] if p)
 
     @classmethod
     def from_dict(cls, data: dict) -> "Znanstvenik":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         zvanja_raw = (
             data.get("zvanjeResources", {})
             .get("_embedded", {})
@@ -171,6 +190,7 @@ class Znanstvenik:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         aktivno_zaposlenje = next((z for z in self.zaposlenja if z.aktivno), None)
         return {
             "id": self.id,
@@ -189,6 +209,8 @@ class Znanstvenik:
 
 @dataclass
 class RadniOdnos:
+    """Radni odnos osobe u ustanovi s vrstom, oblikom radnog vremena i kategorijom."""
+
     id: int
     cf_pers_id: Optional[int] = None
     oib_osobe: Optional[str] = None
@@ -203,10 +225,12 @@ class RadniOdnos:
 
     @property
     def puno_ime(self) -> str:
+        """Vrati puno ime osobe (ime + prezime) kao jedinstven niz znakova."""
         return " ".join(p for p in [self.ime_osobe, self.prezime_osobe] if p)
 
     @classmethod
     def from_dict(cls, data: dict) -> "RadniOdnos":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["hrPersRadniOdnosId"],
             cf_pers_id=data.get("cfPersId"),
@@ -222,6 +246,7 @@ class RadniOdnos:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "puno_ime": self.puno_ime,
@@ -235,6 +260,8 @@ class RadniOdnos:
 
 @dataclass
 class OsobaAkreditacija:
+    """Nastavnik s akreditacijom za određenu organizacijsku jedinicu."""
+
     id: int
     oib: Optional[str] = None
     ime: Optional[str] = None
@@ -247,10 +274,12 @@ class OsobaAkreditacija:
 
     @property
     def puno_ime(self) -> str:
+        """Vrati puno ime (ime + prezime) kao jedinstven niz znakova."""
         return " ".join(p for p in [self.ime, self.prezime] if p)
 
     @classmethod
     def from_dict(cls, data: dict) -> "OsobaAkreditacija":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             oib=data.get("oib"),
@@ -264,6 +293,7 @@ class OsobaAkreditacija:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "puno_ime": self.puno_ime,

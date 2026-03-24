@@ -1,3 +1,4 @@
+"""Model ustanove vezane uz projekt iz CroRIS Projekti API-ja."""
 from dataclasses import dataclass
 from typing import Optional
 
@@ -6,6 +7,8 @@ from .common import Klasifikacija
 
 @dataclass
 class Ustanova:
+    """Ustanova suradnica na projektu u CroRIS Projekti API-ju."""
+
     id: int
     naziv: Optional[str] = None
     mbu: Optional[str] = None
@@ -19,6 +22,7 @@ class Ustanova:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Ustanova":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             naziv=data.get("naziv"),
@@ -37,6 +41,7 @@ class Ustanova:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "naziv": self.naziv,

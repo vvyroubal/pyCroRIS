@@ -1,3 +1,4 @@
+"""Model osobe (suradnika) na projektu iz CroRIS Projekti API-ja."""
 from dataclasses import dataclass
 from typing import Optional
 
@@ -6,6 +7,8 @@ from .common import Klasifikacija
 
 @dataclass
 class Osoba:
+    """Osoba (suradnik) vezana uz projekt u CroRIS Projekti API-ju."""
+
     pers_id: int
     ime: Optional[str] = None
     prezime: Optional[str] = None
@@ -21,11 +24,13 @@ class Osoba:
 
     @property
     def puno_ime(self) -> str:
+        """Vrati puno ime (ime + prezime) kao jedinstven niz znakova."""
         parts = [self.ime, self.prezime]
         return " ".join(p for p in parts if p)
 
     @classmethod
     def from_dict(cls, data: dict) -> "Osoba":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             pers_id=data["persId"],
             ime=data.get("ime"),
@@ -46,6 +51,7 @@ class Osoba:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "pers_id": self.pers_id,
             "ime": self.ime,

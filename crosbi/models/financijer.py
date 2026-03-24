@@ -1,3 +1,4 @@
+"""Modeli financijera i programa iz CroRIS Projekti API-ja."""
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -6,12 +7,15 @@ from .common import TranslatedText, get_text
 
 @dataclass
 class FinancijerProgram:
+    """Program financiranja unutar financijera projekta."""
+
     id: Optional[int] = None
     naziv_hr: Optional[str] = None
     naziv_en: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "FinancijerProgram":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data.get("id"),
             naziv_hr=data.get("nazivHr"),
@@ -21,6 +25,8 @@ class FinancijerProgram:
 
 @dataclass
 class Financijer:
+    """Financijer projekta s iznosom, programom i višejezičnim nazivom."""
+
     id: int
     amount: Optional[float] = None
     currency_code: Optional[str] = None
@@ -39,12 +45,14 @@ class Financijer:
     financijer_poirot_id: Optional[int] = None
 
     def get_naziv(self, lang: str = "hr") -> str:
+        """Vrati naziv financijera na zadanom jeziku; fallback na entity_name."""
         if self.naziv:
             return get_text(self.naziv, lang)
         return self.entity_name_hr or self.entity_name_en or ""
 
     @classmethod
     def from_dict(cls, data: dict) -> "Financijer":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             amount=data.get("amount"),
@@ -69,6 +77,7 @@ class Financijer:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "naziv": self.get_naziv("hr"),

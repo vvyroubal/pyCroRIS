@@ -329,6 +329,26 @@ Izvozne funkcije automatski stvaraju odredišni direktorij ako ne postoji.
 
 ---
 
+## Dokumentacija
+
+API dokumentacija generira se iz docstringova pomoću alata `pdoc`.
+
+### Generiranje dokumentacije
+
+```bash
+pdoc crosbi --output-dir doc
+```
+
+HTML datoteke bit će zapisane u direktorij `doc/`. Otvorite `doc/index.html` u pregledniku.
+
+Za interaktivni pregled dokumentacije u pregledniku:
+
+```bash
+pdoc crosbi
+```
+
+---
+
 ## Testiranje
 
 Projekt sadrži jediničnu testnu zbirku koja pokriva HTTP klijent, konfiguracijske postavke, modele podataka i izvozne module.

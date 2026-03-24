@@ -9,12 +9,15 @@ from typing import Optional
 
 @dataclass
 class Adresa:
+    """Adresa ustanove (mjesto, ulica, poštanski broj)."""
+
     mjesto: Optional[str] = None
     ulica_br: Optional[str] = None
     postanskI_broj: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "Adresa":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             mjesto=data.get("mjesto"),
             ulica_br=data.get("ulicaBr"),
@@ -24,6 +27,8 @@ class Adresa:
 
 @dataclass
 class Kontakt:
+    """Kontaktni podaci ustanove (telefon, fax, web, e-mail)."""
+
     telefon: Optional[str] = None
     fax: Optional[str] = None
     web: Optional[str] = None
@@ -31,6 +36,7 @@ class Kontakt:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Kontakt":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             telefon=data.get("telefon"),
             fax=data.get("fax"),
@@ -41,32 +47,41 @@ class Kontakt:
 
 @dataclass
 class NadUstanova:
+    """Nadređena ustanova u hijerarhiji (matična ustanova)."""
+
     id: int
     naziv: Optional[str] = None
     mbu: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "NadUstanova":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(id=data["id"], naziv=data.get("naziv"), mbu=data.get("mbu"))
 
 
 @dataclass
 class TipUstanove:
+    """Tip ustanove prema MZO upisniku (npr. sveučilište, institut)."""
+
     id: int
     naziv: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "TipUstanove":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(id=data["id"], naziv=data.get("naziv"))
 
 
 @dataclass
 class VrstaUstanove:
+    """Vrsta ustanove prema MZO upisniku (npr. javna, privatna)."""
+
     id: int
     naziv: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "VrstaUstanove":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(id=data["id"], naziv=data.get("naziv"))
 
 
@@ -99,6 +114,7 @@ class UstanovaReg:
 
     @classmethod
     def from_dict(cls, data: dict) -> "UstanovaReg":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             naziv=data.get("naziv"),
@@ -133,6 +149,7 @@ class UstanovaReg:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "naziv": self.naziv,
@@ -156,6 +173,8 @@ class UstanovaReg:
 
 @dataclass
 class PravniAkt:
+    """Pravni akt koji definira PPG klasifikaciju."""
+
     id: Optional[int] = None
     default_naziv: Optional[str] = None
     datum_usvojenja: Optional[str] = None
@@ -163,6 +182,7 @@ class PravniAkt:
 
     @classmethod
     def from_dict(cls, data: dict) -> "PravniAkt":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data.get("id"),
             default_naziv=data.get("defaultNaziv"),
@@ -173,6 +193,8 @@ class PravniAkt:
 
 @dataclass
 class Grana:
+    """Grana (najniža razina) u PPG klasifikacijskoj hijerarhiji."""
+
     disciplina_id: int
     naziv: Optional[str] = None
     naziv_en: Optional[str] = None
@@ -180,6 +202,7 @@ class Grana:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Grana":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             disciplina_id=data["disciplinaId"],
             naziv=data.get("nazivDiscipline"),
@@ -188,6 +211,7 @@ class Grana:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "disciplina_id": self.disciplina_id,
             "naziv": self.naziv,
@@ -198,6 +222,8 @@ class Grana:
 
 @dataclass
 class Polje:
+    """Polje (srednja razina) u PPG klasifikacijskoj hijerarhiji — sadrži grane."""
+
     disciplina_id: int
     naziv: Optional[str] = None
     naziv_en: Optional[str] = None
@@ -206,6 +232,7 @@ class Polje:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Polje":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             disciplina_id=data["disciplinaId"],
             naziv=data.get("nazivDiscipline"),
@@ -215,6 +242,7 @@ class Polje:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "disciplina_id": self.disciplina_id,
             "naziv": self.naziv,
@@ -226,6 +254,8 @@ class Polje:
 
 @dataclass
 class Podrucje:
+    """Područje (najviša razina) u PPG klasifikacijskoj hijerarhiji."""
+
     disciplina_id: int
     naziv: Optional[str] = None
     naziv_en: Optional[str] = None
@@ -233,6 +263,7 @@ class Podrucje:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Podrucje":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             disciplina_id=data["disciplinaId"],
             naziv=data.get("nazivDiscipline"),
@@ -241,6 +272,7 @@ class Podrucje:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "disciplina_id": self.disciplina_id,
             "naziv": self.naziv,

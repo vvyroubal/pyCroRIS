@@ -1,3 +1,4 @@
+"""Svi podatkovni modeli CroRIS API klijenta — javno sučelje paketa crosbi.models."""
 from .casopis import Casopis, PublikacijaCasopis
 from .common import Klasifikacija, TranslatedText
 from .dogadanje import Dogadanje, MjestoOdrzavanja, PublikacijaDogadanje

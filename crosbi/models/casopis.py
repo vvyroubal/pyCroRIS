@@ -5,12 +5,15 @@ from typing import Optional
 
 @dataclass
 class PublikacijaCasopis:
+    """Kratki zapis publikacije vezane uz određeni časopis."""
+
     cf_res_publ_id: int
     hr_journal_id: Optional[int] = None
     citat: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "PublikacijaCasopis":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             cf_res_publ_id=data["cfResPublId"],
             hr_journal_id=data.get("hrJournalId"),
@@ -18,6 +21,7 @@ class PublikacijaCasopis:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "cf_res_publ_id": self.cf_res_publ_id,
             "hr_journal_id": self.hr_journal_id,
@@ -27,6 +31,8 @@ class PublikacijaCasopis:
 
 @dataclass
 class Casopis:
+    """Časopis iz CroRIS Časopisi API-ja s bibliografskim podacima i popisom publikacija."""
+
     id: int
     naziv: Optional[str] = None
     drzava: Optional[str] = None
@@ -42,6 +48,7 @@ class Casopis:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Casopis":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         embedded = data.get("publikacijaResource", {}) or {}
         pubs_raw = embedded.get("_embedded", {}).get("publikacije", [])
         return cls(
@@ -60,6 +67,7 @@ class Casopis:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "naziv": self.naziv,

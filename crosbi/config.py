@@ -1,3 +1,4 @@
+"""Konfiguracija CroRIS klijenta — URL-ovi modula i konfiguracijska klasa."""
 import os
 from dataclasses import dataclass, field
 
@@ -17,6 +18,21 @@ ZNANSTVENICI_BASE_URL = "https://www.croris.hr/znanstvenici-api"
 
 @dataclass
 class Config:
+    """Konfiguracijske postavke HTTP klijenta.
+
+    Vrijednosti se čitaju iz okružnih varijabli (.env) ako nisu proslijeđene
+    izravno. Sve varijable su neobavezne — postavljene su razumne zadane
+    vrijednosti.
+
+    Atributi:
+        base_url: Osnovna adresa API-ja (zadano: Projekti API).
+        username: Korisničko ime za HTTP Basic autentikaciju.
+        password: Lozinka za HTTP Basic autentikaciju.
+        page_size: Broj zapisa po stranici pri paginaciji (5–100).
+        timeout: Istek HTTP zahtjeva u sekundama.
+        max_retries: Broj automatskih ponovnih pokušaja za 5xx odgovore.
+    """
+
     base_url: str = field(
         default_factory=lambda: os.getenv("CRORIS_BASE_URL", PROJEKTI_BASE_URL)
     )

@@ -1,3 +1,4 @@
+"""Svi endpoint moduli CroRIS API klijenta — javno sučelje paketa crosbi.endpoints."""
 from . import (
     casopisi,
     dogadanja,

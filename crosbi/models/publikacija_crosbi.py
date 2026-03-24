@@ -7,12 +7,15 @@ from .common import Klasifikacija, TranslatedText
 
 @dataclass
 class Citat:
+    """Bibliografski citat publikacije (npr. APA, MLA format)."""
+
     vrsta_id: Optional[int] = None
     vrsta_naziv: Optional[str] = None
     citat: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "Citat":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             vrsta_id=data.get("vrstaCitataId"),
             vrsta_naziv=data.get("vrstaCitataNaziv"),
@@ -22,6 +25,8 @@ class Citat:
 
 @dataclass
 class Poveznica:
+    """URL poveznica vezana uz publikaciju (repozitorij, preprint, DOI)."""
+
     url_id: Optional[int] = None
     url_vrsta_id: Optional[int] = None
     url_vrsta_naziv: Optional[str] = None
@@ -29,6 +34,7 @@ class Poveznica:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Poveznica":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             url_id=data.get("urlId"),
             url_vrsta_id=data.get("urlVrstaId"),
@@ -39,12 +45,15 @@ class Poveznica:
 
 @dataclass
 class Skup:
+    """Skup (konferencija) na kojemu je publikacija predstavljena."""
+
     cf_event_id: Optional[int] = None
     naziv: Optional[str] = None
     href: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "Skup":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             cf_event_id=data.get("cfEventId"),
             naziv=data.get("naziv"),
@@ -54,17 +63,22 @@ class Skup:
 
 @dataclass
 class DisciplinaCrosbi:
+    """Disciplina (PPG grana) kojoj je publikacija pripisana u CROSBI-ju."""
+
     id: Optional[int] = None
     naziv: Optional[str] = None
     sifra: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "DisciplinaCrosbi":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(id=data.get("id"), naziv=data.get("naziv"), sifra=data.get("sifra"))
 
 
 @dataclass
 class OsobaPublikacija:
+    """Autor ili suradnik na CROSBI publikaciji."""
+
     croris_id: Optional[int] = None
     titula: Optional[str] = None
     ime: Optional[str] = None
@@ -73,10 +87,12 @@ class OsobaPublikacija:
 
     @property
     def puno_ime(self) -> str:
+        """Vrati puno ime (ime + prezime) kao jedinstven niz znakova."""
         return " ".join(p for p in [self.ime, self.prezime] if p)
 
     @classmethod
     def from_dict(cls, data: dict) -> "OsobaPublikacija":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             croris_id=data.get("crorisId"),
             titula=data.get("titulaIspredImena"),
@@ -90,6 +106,8 @@ class OsobaPublikacija:
 
 @dataclass
 class UstanovaPublikacija:
+    """Ustanova pridružena CROSBI publikaciji."""
+
     croris_id: Optional[int] = None
     naziv: Optional[str] = None
     mbu: Optional[int] = None
@@ -97,6 +115,7 @@ class UstanovaPublikacija:
 
     @classmethod
     def from_dict(cls, data: dict) -> "UstanovaPublikacija":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             croris_id=data.get("crorisId"),
             naziv=data.get("naziv"),
@@ -109,12 +128,15 @@ class UstanovaPublikacija:
 
 @dataclass
 class ProjektPublikacija:
+    """Projekt pridružen CROSBI publikaciji."""
+
     croris_id: Optional[int] = None
     naziv: Optional[str] = None
     funkcija: Optional[Klasifikacija] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ProjektPublikacija":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             croris_id=data.get("crorisId"),
             naziv=data.get("naziv"),
@@ -162,6 +184,7 @@ class PublikacijaCrosbi:
 
     @classmethod
     def from_dict(cls, data: dict) -> "PublikacijaCrosbi":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             crosbi_id=data["crosbiId"],
             bib_irb_id=data.get("bibIrbId"),
@@ -199,6 +222,7 @@ class PublikacijaCrosbi:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "crosbi_id": self.crosbi_id,
             "autori": self.autori,

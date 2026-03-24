@@ -12,6 +12,7 @@ class TranslatedTextML:
     records: list[dict] = field(default_factory=list)
 
     def get(self, lang: str = "hr") -> str:
+        """Vrati tekst na zadanom jeziku; fallback na prvi zapis."""
         for r in self.records:
             if r.get("langCode") == lang:
                 return r.get("naziv", "")
@@ -19,6 +20,7 @@ class TranslatedTextML:
 
     @classmethod
     def from_dict(cls, data: dict | None) -> "TranslatedTextML":
+        """Konstruiraj instancu iz sirovog rječnika; vraća prazan objekt za None."""
         if not data:
             return cls()
         return cls(records=data.get("records", []))
@@ -26,12 +28,15 @@ class TranslatedTextML:
 
 @dataclass
 class Cijena:
+    """Novčani iznos s jedinicom mjere i valutom."""
+
     iznos: Optional[float] = None
     jedinica_mjere: Optional[str] = None
     valuta: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "Cijena":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             iznos=data.get("iznos"),
             jedinica_mjere=data.get("jedinicaMjere"),
@@ -41,27 +46,35 @@ class Cijena:
 
 @dataclass
 class OpremaUstanova:
+    """Ustanova vlasnik ili lokacija opreme."""
+
     id: Optional[int] = None
     naziv: Optional[str] = None
     mbu: Optional[int] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "OpremaUstanova":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(id=data.get("id"), naziv=data.get("naziv"), mbu=data.get("mbu"))
 
 
 @dataclass
 class OpremaProjekt:
+    """Projekt na kojemu je oprema nabavljena ili korištena."""
+
     id: Optional[int] = None
     naziv: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "OpremaProjekt":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(id=data.get("id"), naziv=data.get("naziv"))
 
 
 @dataclass
 class OpremaOsoba:
+    """Osoba (voditelj ili kontakt) vezana uz opremu."""
+
     id: int
     ime: Optional[str] = None
     prezime: Optional[str] = None
@@ -70,10 +83,12 @@ class OpremaOsoba:
 
     @property
     def puno_ime(self) -> str:
+        """Vrati puno ime (ime + prezime) kao jedinstven niz znakova."""
         return " ".join(p for p in [self.ime, self.prezime] if p)
 
     @classmethod
     def from_dict(cls, data: dict) -> "OpremaOsoba":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             ime=data.get("ime"),
@@ -85,6 +100,7 @@ class OpremaOsoba:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "puno_ime": self.puno_ime,
@@ -95,6 +111,8 @@ class OpremaOsoba:
 
 @dataclass
 class Oprema:
+    """Znanstvena oprema iz CroRIS Oprema API-ja s tehničkim i administrativnim podacima."""
+
     id: int
     model: Optional[str] = None
     proizvodjac: Optional[str] = None
@@ -117,10 +135,12 @@ class Oprema:
     projekt: Optional[OpremaProjekt] = None
 
     def get_naziv(self, lang: str = "hr") -> str:
+        """Vrati naziv opreme na zadanom jeziku (zadano: hr)."""
         return self.naziv.get(lang) if self.naziv else ""
 
     @classmethod
     def from_dict(cls, data: dict) -> "Oprema":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             model=data.get("model"),
@@ -171,6 +191,7 @@ class Oprema:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "naziv": self.get_naziv("hr"),
@@ -192,6 +213,8 @@ class Oprema:
 
 @dataclass
 class Usluga:
+    """Usluga mjerenja ili analize koju nudi ustanova putem opreme."""
+
     id: int
     ustanova_id: Optional[int] = None
     ustanova_naziv: Optional[str] = None
@@ -202,10 +225,12 @@ class Usluga:
     opis: Optional[TranslatedTextML] = None
 
     def get_naziv(self, lang: str = "hr") -> str:
+        """Vrati naziv usluge na zadanom jeziku (zadano: hr)."""
         return self.naziv.get(lang) if self.naziv else ""
 
     @classmethod
     def from_dict(cls, data: dict) -> "Usluga":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         ustanova = data.get("ustanova", {}) or {}
         return cls(
             id=data["id"],
@@ -219,6 +244,7 @@ class Usluga:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "naziv": self.get_naziv("hr"),
@@ -231,12 +257,15 @@ class Usluga:
 
 @dataclass
 class UslugaCjenik:
+    """Cjenik usluge s vrstom korisnika i iznosom."""
+
     id: int
     vrsta_korisnika: Optional[Klasifikacija] = None
     cijena: Optional[Cijena] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "UslugaCjenik":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             vrsta_korisnika=(
@@ -248,6 +277,7 @@ class UslugaCjenik:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "vrsta_korisnika": self.vrsta_korisnika.naziv if self.vrsta_korisnika else None,

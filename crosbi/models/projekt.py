@@ -1,3 +1,4 @@
+"""Model projekta iz CroRIS Projekti API-ja (projekti-api)."""
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -6,6 +7,8 @@ from .common import Klasifikacija, TranslatedText, get_text
 
 @dataclass
 class Projekt:
+    """Istraživački projekt iz CroRIS Projekti API-ja."""
+
     id: int
     acro: Optional[str] = None
     uri: Optional[str] = None
@@ -24,16 +27,20 @@ class Projekt:
     projekt_poirot_id: Optional[int] = None
 
     def get_title(self, lang: str = "hr") -> str:
+        """Vrati naslov projekta na zadanom jeziku (zadano: hr)."""
         return get_text(self.title, lang)
 
     def get_summary(self, lang: str = "hr") -> str:
+        """Vrati sažetak projekta na zadanom jeziku (zadano: hr)."""
         return get_text(self.summary, lang)
 
     def get_keywords(self, lang: str = "hr") -> str:
+        """Vrati ključne riječi projekta na zadanom jeziku (zadano: hr)."""
         return get_text(self.keywords, lang)
 
     @classmethod
     def from_dict(cls, data: dict) -> "Projekt":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             id=data["id"],
             acro=data.get("acro"),
@@ -58,6 +65,7 @@ class Projekt:
         )
 
     def to_dict(self) -> dict:
+        """Vrati rječnik s ključnim poljima pogodnim za izvoz (CSV/JSON)."""
         return {
             "id": self.id,
             "acro": self.acro,

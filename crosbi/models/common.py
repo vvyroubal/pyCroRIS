@@ -1,9 +1,12 @@
+"""Zajednički modeli koji se koriste u svim CroRIS API modulima."""
 from dataclasses import dataclass
 from typing import Optional
 
 
 @dataclass
 class TranslatedText:
+    """Višejezični tekst s oznakom jezika (HAL+JSON ml zapis)."""
+
     lang_code: str
     naziv: str
     lang_name: Optional[str] = None
@@ -12,6 +15,7 @@ class TranslatedText:
 
     @classmethod
     def from_dict(cls, data: dict) -> "TranslatedText":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(
             lang_code=data.get("cfLangCode", ""),
             naziv=data.get("naziv", ""),
@@ -23,11 +27,14 @@ class TranslatedText:
 
 @dataclass
 class Klasifikacija:
+    """Generički klasifikacijski zapis s identifikatorom i nazivom."""
+
     id: int
     naziv: str
 
     @classmethod
     def from_dict(cls, data: dict) -> "Klasifikacija":
+        """Konstruiraj instancu iz sirovog rječnika API odgovora."""
         return cls(id=data.get("id", 0), naziv=data.get("naziv", ""))
 
 

@@ -1,3 +1,4 @@
+"""Pomoćne funkcije za izvoz podataka u CSV format."""
 import csv
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
@@ -5,6 +6,8 @@ from typing import Any, Protocol, runtime_checkable
 
 @runtime_checkable
 class HasToDict(Protocol):
+    """Protokol za objekte koji implementiraju metodu to_dict()."""
+
     def to_dict(self) -> dict: ...
 
 
