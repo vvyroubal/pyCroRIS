@@ -27,7 +27,8 @@ include = ["crosbi*"]
 testpaths = ["tests"]
 addopts = "--strict-markers -v"
 markers = [
-    "integration: testovi koji zahtijevaju mrežni pristup (preskočiti s -m 'not integration')",
+    "unit: testovi bez mrežnog pristupa",
+    "integration: testovi koji zahtijevaju mrežni pristup",
 ]
 
 [tool.coverage.run]
