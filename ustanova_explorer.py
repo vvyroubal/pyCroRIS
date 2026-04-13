@@ -85,39 +85,39 @@ def _selector(mo, dropdown_options):
 def _ustanova_info(mo, ustanova_dropdown, ustanove_map):
     mo.stop(ustanova_dropdown.value is None, mo.md("*Odaberi ustanovu iz izbornika iznad.*"))
 
-    u = ustanove_map[ustanova_dropdown.value]
+    _u = ustanove_map[ustanova_dropdown.value]
 
-    adresa = u.get("adresa", {}) or {}
-    kontakt = u.get("kontakt", {}) or {}
-    nad = u.get("nadUstanova")
-    tip_list = u.get("tipUstanove", [])
-    vrsta = u.get("vrstaUstanove", {}) or {}
+    _adresa = _u.get("adresa", {}) or {}
+    _kontakt = _u.get("kontakt", {}) or {}
+    _nad = _u.get("nadUstanova")
+    _tip_list = _u.get("tipUstanove", [])
+    _vrsta = _u.get("vrstaUstanove", {}) or {}
 
-    _tip_str = ", ".join(t.get("naziv", "") for t in tip_list) if tip_list else "—"
-    _nad_str = nad["naziv"] if nad else "—"
-    _adr_str = f"{adresa.get('ulicaBr', '')}, {adresa.get('postanskiBroj', '')} {adresa.get('mjesto', '')}".strip(", ")
-    _web = kontakt.get("web", "")
+    _tip_str = ", ".join(t.get("naziv", "") for t in _tip_list) if _tip_list else "—"
+    _nad_str = _nad["naziv"] if _nad else "—"
+    _adr_str = f"{_adresa.get('ulicaBr', '')}, {_adresa.get('postanskiBroj', '')} {_adresa.get('mjesto', '')}".strip(", ")
+    _web = _kontakt.get("web", "")
     _web_link = f"[{_web}](https://{_web})" if _web else "—"
 
     mo.vstack([
-        mo.md(f"## {u.get('puniNaziv', '—')}"),
-        mo.md(f"*{u.get('puniNazivEn', '')}*") if u.get("puniNazivEn") else mo.md(""),
+        mo.md(f"## {_u.get('puniNaziv', '—')}"),
+        mo.md(f"*{_u.get('puniNazivEn', '')}*") if _u.get("puniNazivEn") else mo.md(""),
         mo.hstack([
-            mo.stat(label="Kratica", value=u.get("kratica", "—")),
-            mo.stat(label="MBU", value=u.get("mbu", "—")),
-            mo.stat(label="Županija", value=u.get("zupanija", "—")),
-            mo.stat(label="Vlasništvo", value=u.get("tipVlasnistva", "—")),
+            mo.stat(label="Kratica", value=_u.get("kratica", "—")),
+            mo.stat(label="MBU", value=_u.get("mbu", "—")),
+            mo.stat(label="Županija", value=_u.get("zupanija", "—")),
+            mo.stat(label="Vlasništvo", value=_u.get("tipVlasnistva", "—")),
         ], gap=2),
         mo.md(f"""
 | Polje | Vrijednost |
 |---|---|
-| Vrsta | {vrsta.get("naziv", "—")} |
+| Vrsta | {_vrsta.get("naziv", "—")} |
 | Tip | {_tip_str} |
 | Adresa | {_adr_str} |
 | Web | {_web_link} |
-| E-mail | {kontakt.get("email", "—")} |
-| Telefon | {kontakt.get("telefon", "—")} |
-| Čelnik | {u.get("celnik", "—")} |
+| E-mail | {_kontakt.get("email", "—")} |
+| Telefon | {_kontakt.get("telefon", "—")} |
+| Čelnik | {_u.get("celnik", "—")} |
 | Nadređena ustanova | {_nad_str} |
 """),
     ])
@@ -127,16 +127,16 @@ def _ustanova_info(mo, ustanova_dropdown, ustanove_map):
 def _counts(mo, ustanova_dropdown, requests, HEADERS, CROSBI_BASE, PROJEKTI_BASE, ustanove_map):
     mo.stop(ustanova_dropdown.value is None)
 
-    croris_id = ustanova_dropdown.value
-    u = ustanove_map[croris_id]
-    mbu = u.get("mbu", "")
+    _croris_id = ustanova_dropdown.value
+    _u = ustanove_map[_croris_id]
+    _mbu = _u.get("mbu", "")
 
     # CROSBI count — dohvati listu linkova (brzo, bez fetch sadržaja)
     pub_count = 0
     pub_error = None
     try:
         _r = requests.get(
-            f"{CROSBI_BASE}/ustanova/{croris_id}",
+            f"{CROSBI_BASE}/ustanova/{_croris_id}",
             headers=HEADERS,
             timeout=15,
         )
@@ -155,7 +155,7 @@ def _counts(mo, ustanova_dropdown, requests, HEADERS, CROSBI_BASE, PROJEKTI_BASE
     proj_raw = []
     try:
         _r2 = requests.get(
-            f"{PROJEKTI_BASE}/projekt/ustanova/{mbu}",
+            f"{PROJEKTI_BASE}/projekt/ustanova/{_mbu}",
             headers=HEADERS,
             timeout=8,
         )
@@ -215,7 +215,7 @@ def _pub_fetch(
     )
     mo.stop(ustanova_dropdown.value is None)
 
-    croris_id = ustanova_dropdown.value
+    _croris_id = ustanova_dropdown.value
     pub_rows = []
     _fetch_error = None
 
@@ -227,7 +227,7 @@ def _pub_fetch(
     try:
         with mo.status.spinner(title="Dohvaćam popis publikacija..."):
             _r = requests.get(
-                f"{CROSBI_BASE}/ustanova/{croris_id}",
+                f"{CROSBI_BASE}/ustanova/{_croris_id}",
                 headers=HEADERS,
                 timeout=15,
             )
