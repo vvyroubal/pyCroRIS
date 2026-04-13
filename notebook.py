@@ -37,14 +37,13 @@ def _imports():
 
 @app.cell
 def _header(mo):
-    mo.md("""
+    return mo.md("""
     # CroRIS Explorer
 
     Interaktivni pregled podataka iz svih [CroRIS REST API](https://wiki.srce.hr/spaces/CRORIS/pages/49283931/Programska+su%C4%8Delja+CroRIS-a) modula.
 
     ---
     """)
-    return
 
 
 @app.cell
@@ -72,17 +71,16 @@ def _build_client(mo, page_size_input, password_input, username_input):
         if _u
         else mo.callout(mo.md("Nisu uneseni kredencijali — postavi u `.env` ili unesi iznad."), kind="warn")
     )
-    _status
+    mo.output.replace(_status)
     return (client,)
 
 
 @app.cell
 def _mode_selector(mo):
-    mo.md("""
+    return mo.md("""
     ---
     ## Odabir podataka
     """)
-    return
 
 
 @app.cell
