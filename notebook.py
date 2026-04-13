@@ -344,7 +344,7 @@ def _viz_mozvag_ustanove(df, mo, mode, px):
         color="broj", color_continuous_scale="Blues",
     )
     _fig.update_layout(xaxis_tickangle=-45, showlegend=False)
-    mo.plotly(_fig)
+    mo.as_html(_fig)
     return
 
 
@@ -380,7 +380,7 @@ def _viz_mozvag_projekti(df, mo, mode, pd, px):
         _gantt.update_yaxes(autorange="reversed")
         _gantt.update_layout(height=max(400, len(_tl) * 25))
 
-    mo.vstack([mo.plotly(_pie), mo.plotly(_bar)] + ([mo.plotly(_gantt)] if _gantt else []))
+    mo.vstack([mo.as_html(_pie), mo.as_html(_bar)] + ([mo.as_html(_gantt)] if _gantt else []))
     return
 
 
@@ -394,7 +394,7 @@ def _viz_upisnik(df, mo, mode, px):
             color="broj", color_continuous_scale="Greens",
         )
         _fig.update_layout(xaxis_tickangle=-45, showlegend=False)
-        mo.plotly(_fig)
+        mo.as_html(_fig)
     return
 
 
@@ -405,7 +405,7 @@ def _viz_osobe(df, mo, mode, px):
         _v = df["uloga"].value_counts().reset_index()
         _v.columns = ["uloga", "broj"]
         _fig = px.pie(_v, names="uloga", values="broj", title="Uloge na projektu", hole=0.3)
-        mo.plotly(_fig)
+        mo.as_html(_fig)
     return
 
 
@@ -423,7 +423,7 @@ def _viz_financijeri(df, mo, mode, px):
                 labels={"amount": "Iznos", "naziv": "Financijer"},
             )
             _fig.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=True)
-            mo.plotly(_fig)
+            mo.as_html(_fig)
     return
 
 
@@ -434,14 +434,14 @@ def _viz_akreditacije(df, mo, mode, px):
     if "vrsta_zaposlenja" in df.columns and not df.empty:
         _v = df["vrsta_zaposlenja"].value_counts().reset_index()
         _v.columns = ["vrsta", "broj"]
-        charts.append(mo.plotly(
+        charts.append(mo.as_html(
             px.pie(_v, names="vrsta", values="broj",
                    title="Akreditacije po vrsti zaposlenja", hole=0.4)
         ))
     if "podrucje" in df.columns and not df.empty:
         _p = df["podrucje"].dropna().value_counts().reset_index()
         _p.columns = ["podrucje", "broj"]
-        charts.append(mo.plotly(
+        charts.append(mo.as_html(
             px.bar(_p, x="podrucje", y="broj",
                    title="Akreditacije po znanstvenom području",
                    color="broj", color_continuous_scale="Teal")
@@ -459,7 +459,7 @@ def _viz_crosbi(df, mo, mode, px):
         _v.columns = ["vrsta", "broj"]
         _pie = px.pie(_v, names="vrsta", values="broj",
                       title="Publikacije po vrsti", hole=0.4)
-        mo.plotly(_pie)
+        mo.as_html(_pie)
     return
 
 
@@ -473,7 +473,7 @@ def _viz_casopisi(df, mo, mode, px):
                       title="Časopisi po zemlji izdavanja (top 20)",
                       color="broj", color_continuous_scale="Oranges")
         _fig.update_layout(xaxis_tickangle=-45, showlegend=False)
-        mo.plotly(_fig)
+        mo.as_html(_fig)
     return
 
 
@@ -487,7 +487,7 @@ def _viz_dogadanja(df, mo, mode, pd, px):
         _fig = px.bar(_y, x="godina", y="broj",
                       title="Događanja po godini", color="broj",
                       color_continuous_scale="Purples")
-        mo.plotly(_fig)
+        mo.as_html(_fig)
     return
 
 
@@ -501,7 +501,7 @@ def _viz_oprema(df, mo, mode, px):
                       title="Oprema po kategoriji",
                       color="broj", color_continuous_scale="Reds")
         _fig.update_layout(xaxis_tickangle=-30, showlegend=False)
-        mo.plotly(_fig)
+        mo.as_html(_fig)
     return
 
 
@@ -513,7 +513,7 @@ def _viz_ppg(df, mo, mode, px):
                       orientation="h", title="PPG Područja",
                       color_discrete_sequence=["#4e79a7"])
         _fig.update_layout(yaxis={"categoryorder": "total ascending"}, height=500)
-        mo.plotly(_fig)
+        mo.as_html(_fig)
     return
 
 
@@ -530,7 +530,7 @@ def _viz_mozvag_financijeri(df, mo, mode, px):
                 color="broj", color_continuous_scale="Blues",
             )
             _fig.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
-            mo.plotly(_fig)
+            mo.as_html(_fig)
     return
 
 

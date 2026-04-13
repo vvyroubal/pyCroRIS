@@ -299,7 +299,7 @@ def _pub_viz(mo, pub_df, px):
                   color="broj", color_continuous_scale="Blues")
     _bar.update_layout(showlegend=False)
 
-    mo.vstack([mo.plotly(_pie), mo.plotly(_bar)])
+    mo.vstack([mo.as_html(_pie), mo.as_html(_bar)])
     return
 
 
@@ -371,7 +371,7 @@ def _proj_viz(mo, proj_df, pd, px):
     _tl["kraj"] = pd.to_datetime(_tl["kraj"], errors="coerce")
     _tl = _tl.dropna(subset=["pocetak", "kraj"]).head(30)
 
-    charts = [mo.plotly(_bar)]
+    charts = [mo.as_html(_bar)]
     if not _tl.empty:
         _tl["label"] = _tl["akronim"].where(_tl["akronim"] != "", _tl["sifra"])
         _gantt = px.timeline(
@@ -380,7 +380,7 @@ def _proj_viz(mo, proj_df, pd, px):
         )
         _gantt.update_yaxes(autorange="reversed")
         _gantt.update_layout(height=max(350, len(_tl) * 22))
-        charts.append(mo.plotly(_gantt))
+        charts.append(mo.as_html(_gantt))
 
     mo.vstack(charts)
     return
