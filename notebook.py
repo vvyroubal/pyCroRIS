@@ -111,7 +111,9 @@ def _mode(mo):
             "oprema_list":      "Oprema — popis",
             "oprema_usluge":    "Oprema — popis usluga",
             # Časopisi API
-            "casopisi_list":    "Časopisi — popis",
+            "casopisi_list":        "Časopisi — popis",
+            "casopis_detalj":       "Časopisi — detalji časopisa",
+            "publikacije_casopisa": "Časopisi — publikacije časopisa",
             # Događanja API
             "dogadanja_list":   "Događanja — popis",
             # Znanstvenici API
@@ -165,16 +167,22 @@ def _conditional_inputs(mo, mode):
         if show == "crosbi_pub_id"
         else None
     )
+    casopis_id_input = (
+        mo.ui.number(start=1, stop=9999999, step=1, value=1, label="ID časopisa")
+        if show in ("casopis_detalj", "publikacije_casopisa")
+        else None
+    )
 
     fetch_btn = mo.ui.run_button(label="Dohvati podatke")
 
     _inputs = [x for x in [
         ustanova_id_input, godina_input, projekt_id_input,
-        mbu_input, mbz_input, oib_input, pub_id_input, fetch_btn,
+        mbu_input, mbz_input, oib_input, pub_id_input, casopis_id_input, fetch_btn,
     ] if x is not None]
 
     mo.hstack(_inputs, gap=2)
     return (
+        casopis_id_input,
         fetch_btn,
         godina_input,
         mbu_input,
@@ -188,6 +196,7 @@ def _conditional_inputs(mo, mode):
 
 @app.cell
 def _fetch(
+    casopis_id_input,
     client,
     fetch_btn,
     godina_input,
@@ -258,6 +267,10 @@ def _fetch(
                 result = list(oprema_api.list_usluge(client=client))
             elif s == "casopisi_list":
                 result = list(casopisi.list_casopisi(client=client))
+            elif s == "casopis_detalj":
+                result = [casopisi.get_casopis(int(casopis_id_input.value), client=client)]
+            elif s == "publikacije_casopisa":
+                result = casopisi.get_publikacije_casopisa(int(casopis_id_input.value), client=client)
             elif s == "dogadanja_list":
                 result = list(dogadanja.list_dogadanja(client=client))
             elif s == "znan_oib":
