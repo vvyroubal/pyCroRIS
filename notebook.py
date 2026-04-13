@@ -523,13 +523,14 @@ def _viz_mozvag_financijeri(df, mo, mode, px):
     if "nadleznost" in df.columns and not df.empty:
         _n = df["nadleznost"].dropna().value_counts().reset_index()
         _n.columns = ["nadleznost", "broj"]
-        _fig = px.bar(
-            _n, x="broj", y="nadleznost", orientation="h",
-            title="Financijeri po nadležnosti",
-            color="broj", color_continuous_scale="Blues",
-        )
-        _fig.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
-        mo.plotly(_fig)
+        if not _n.empty:
+            _fig = px.bar(
+                _n, x="broj", y="nadleznost", orientation="h",
+                title="Financijeri po nadležnosti",
+                color="broj", color_continuous_scale="Blues",
+            )
+            _fig.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
+            mo.plotly(_fig)
     return
 
 
