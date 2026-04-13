@@ -53,8 +53,9 @@ def _load_ustanove(mo, requests, HEADERS, USTANOVE_BASE):
     ustanove_map = {
         str(u["id"]): u for u in _sorted
     }
+    # Marimo dropdown: {label_koji_se_prikazuje: vrijednost_koju_vraca_value}
     dropdown_options = {
-        str(u["id"]): f"{u.get('kratica', '?')} — {u.get('puniNaziv', 'Nepoznato')}"
+        f"{u.get('kratica', '?')} — {u.get('puniNaziv', 'Nepoznato')}": str(u["id"])
         for u in _sorted
     }
     return ustanove_map, dropdown_options
