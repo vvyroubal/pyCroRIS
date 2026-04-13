@@ -51,10 +51,10 @@ def _load_ustanove(mo, requests, HEADERS, USTANOVE_BASE):
 
     _sorted = sorted(_raw, key=lambda u: u.get("puniNaziv", ""))
     ustanove_map = {
-        u["id"]: u for u in _sorted
+        str(u["id"]): u for u in _sorted
     }
     dropdown_options = {
-        u["id"]: f"{u.get('kratica', '?')} — {u.get('puniNaziv', 'Nepoznato')}"
+        str(u["id"]): f"{u.get('kratica', '?')} — {u.get('puniNaziv', 'Nepoznato')}"
         for u in _sorted
     }
     return ustanove_map, dropdown_options
