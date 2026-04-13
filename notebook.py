@@ -98,6 +98,7 @@ def _mode(mo):
             "osobe_projekta":   "Projekti — osobe na projektu",
             "financijeri_proj": "Projekti — financijeri projekta",
             "publikacije_proj": "Projekti — publikacije projekta",
+            "ustanove_projekta":   "Projekti — ustanove na projektu",
             # Ustanove API
             "upisnik_sve":      "Ustanove — sve aktivne (MZO)",
             "upisnik_znan":     "Ustanove — znanstvene",
@@ -116,6 +117,7 @@ def _mode(mo):
             "publikacije_casopisa": "Časopisi — publikacije časopisa",
             # Događanja API
             "dogadanja_list":   "Događanja — popis",
+            "dogadanje_detalj":    "Događanja — detalji događanja",
             # Znanstvenici API
             "znan_oib":         "Znanstvenici — pretraga po OIB-u",
             "znan_mbz":         "Znanstvenici — pretraga po MBZ-u",
@@ -144,7 +146,7 @@ def _conditional_inputs(mo, mode):
     )
     projekt_id_input = (
         mo.ui.number(start=1, stop=9999999, step=1, value=1, label="ID projekta")
-        if show in ("projekt_id", "osobe_projekta", "financijeri_proj", "publikacije_proj")
+        if show in ("projekt_id", "osobe_projekta", "financijeri_proj", "publikacije_proj", "ustanove_projekta")
         else None
     )
     mbu_input = (
@@ -172,17 +174,23 @@ def _conditional_inputs(mo, mode):
         if show in ("casopis_detalj", "publikacije_casopisa")
         else None
     )
+    dogadanje_id_input = (
+        mo.ui.number(start=1, stop=9999999, step=1, value=1, label="ID događanja")
+        if show == "dogadanje_detalj"
+        else None
+    )
 
     fetch_btn = mo.ui.run_button(label="Dohvati podatke")
 
     _inputs = [x for x in [
         ustanova_id_input, godina_input, projekt_id_input,
-        mbu_input, mbz_input, oib_input, pub_id_input, casopis_id_input, fetch_btn,
+        mbu_input, mbz_input, oib_input, pub_id_input, casopis_id_input, dogadanje_id_input, fetch_btn,
     ] if x is not None]
 
     mo.hstack(_inputs, gap=2)
     return (
         casopis_id_input,
+        dogadanje_id_input,
         fetch_btn,
         godina_input,
         mbu_input,
@@ -198,6 +206,7 @@ def _conditional_inputs(mo, mode):
 def _fetch(
     casopis_id_input,
     client,
+    dogadanje_id_input,
     fetch_btn,
     godina_input,
     mbu_input,
@@ -273,6 +282,11 @@ def _fetch(
                 result = casopisi.get_publikacije_casopisa(int(casopis_id_input.value), client=client)
             elif s == "dogadanja_list":
                 result = list(dogadanja.list_dogadanja(client=client))
+            elif s == "ustanove_projekta":
+                from crosbi.endpoints import ustanove as ustanove_ep
+                result = ustanove_ep.get_ustanove_projekta(int(projekt_id_input.value), client=client)
+            elif s == "dogadanje_detalj":
+                result = [dogadanja.get_dogadanje(int(dogadanje_id_input.value), client=client)]
             elif s == "znan_oib":
                 result = [znanstvenici.get_znanstvenik_by_oib(oib_input.value, client=client)]
             elif s == "znan_mbz":
