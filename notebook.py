@@ -71,6 +71,7 @@ def _build_client(mo, page_size_input, password_input, username_input):
         if _u
         else mo.callout(mo.md("Nisu uneseni kredencijali — postavi u `.env` ili unesi iznad."), kind="warn")
     )
+    # Koristi mo.output.replace() jer ćelija mora i vratiti client (za dalje ćelije) i prikazati status
     mo.output.replace(_status)
     return (client,)
 
