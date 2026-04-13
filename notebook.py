@@ -50,7 +50,7 @@ def _header(mo):
 def _auth_inputs(mo):
     username_input = mo.ui.text(placeholder="korisničko ime", label="Korisničko ime")
     password_input = mo.ui.text(placeholder="lozinka", label="Lozinka", kind="password")
-    page_size_input = mo.ui.slider(start=5, stop=100, step=5, value=50, label="Stranica")
+    page_size_input = mo.ui.slider(start=5, stop=100, step=5, value=50, label="Veličina stranice")
     mo.hstack([username_input, password_input, page_size_input], gap=2)
     return page_size_input, password_input, username_input
 
@@ -430,7 +430,7 @@ def _viz_oprema(df, mo, mode, px):
 @app.cell
 def _viz_ppg(df, mo, mode, px):
     mo.stop(mode.value != "ppg_podrucja")
-    if not df.empty:
+    if not df.empty and "sifra" in df.columns and "naziv" in df.columns:
         _fig = px.bar(df.sort_values("sifra"), x="sifra", y="naziv",
                       orientation="h", title="PPG Područja",
                       color_discrete_sequence=["#4e79a7"])
