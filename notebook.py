@@ -122,6 +122,7 @@ def _mode(mo):
             "znan_oib":         "Znanstvenici — pretraga po OIB-u",
             "znan_mbz":         "Znanstvenici — pretraga po MBZ-u",
             "znan_akred":       "Znanstvenici — akreditacije org. jedinice",
+            "svi_znanstvenici": "Znanstvenici — svi (cached)",
         },
         value="mozvag_ustanove",
         label="Što želiš dohvatiti?",
@@ -293,6 +294,8 @@ def _fetch(
                 result = [znanstvenici.get_znanstvenik_by_mbz(mbz_input.value, client=client)]
             elif s == "znan_akred":
                 result = znanstvenici.get_akreditacije_ustanove(int(ustanova_id_input.value), client=client)
+            elif s == "svi_znanstvenici":
+                result = znanstvenici.get_svi_znanstvenici(client=client)
     except Exception as e:
         error_msg = f"**Greška:** {e}\n\n```\n{traceback.format_exc()}\n```"
 
