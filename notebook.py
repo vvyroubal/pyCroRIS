@@ -91,6 +91,8 @@ def _mode(mo):
             # Projekti API
             "mozvag_ustanove":  "Projekti — MOZVAG ustanove",
             "mozvag_projekti":  "Projekti — MOZVAG projekti ustanove",
+            "mozvag_financijeri": "Projekti — MOZVAG financijeri",
+            "mozvag_osoba_mbz":   "Projekti — MOZVAG osoba po MBZ-u",
             "projekti_mbu":     "Projekti — po MBU ustanove",
             "projekt_id":       "Projekti — detalji projekta",
             "osobe_projekta":   "Projekti — osobe na projektu",
@@ -135,7 +137,7 @@ def _conditional_inputs(mo, mode):
     )
     godina_input = (
         mo.ui.number(start=2000, stop=2030, step=1, value=2024, label="Godina")
-        if show == "mozvag_projekti"
+        if show in ("mozvag_projekti", "mozvag_osoba_mbz")
         else None
     )
     projekt_id_input = (
@@ -150,7 +152,7 @@ def _conditional_inputs(mo, mode):
     )
     mbz_input = (
         mo.ui.text(placeholder="npr. 123456", label="MBZ")
-        if show in ("crosbi_osoba_mbz", "znan_mbz")
+        if show in ("crosbi_osoba_mbz", "znan_mbz", "mozvag_osoba_mbz")
         else None
     )
     oib_input = (
@@ -242,6 +244,10 @@ def _fetch(
                 result = upisnik.get_javni_znanstveni_instituti(client=client)
             elif s == "ppg_podrucja":
                 result = upisnik.get_sva_podrucja(client=client)
+            elif s == "mozvag_financijeri":
+                result = mozvag.get_financijere(client=client)
+            elif s == "mozvag_osoba_mbz":
+                result = [mozvag.get_osoba_po_mbz(mbz_input.value, int(godina_input.value), client=client)]
             elif s == "crosbi_osoba_mbz":
                 result = [publikacije_crosbi.get_publikacije_osobe_by_mbz(mbz_input.value, client=client)]
             elif s == "crosbi_pub_id":
