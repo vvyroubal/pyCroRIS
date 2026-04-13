@@ -410,6 +410,24 @@ def _viz_osobe(df, mo, mode, px):
 
 
 @app.cell
+def _viz_financijeri(df, mo, mode, px):
+    mo.stop(mode.value != "financijeri_proj")
+    if "naziv" in df.columns and "amount" in df.columns:
+        _df = df.dropna(subset=["amount"]).copy()
+        if not _df.empty:
+            _fig = px.bar(
+                _df.sort_values("amount", ascending=True),
+                x="amount", y="naziv", orientation="h",
+                color="vrsta_izvora" if "vrsta_izvora" in _df.columns else None,
+                title="Iznosi financiranja po financijeru",
+                labels={"amount": "Iznos", "naziv": "Financijer"},
+            )
+            _fig.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=True)
+            mo.plotly(_fig)
+    return
+
+
+@app.cell
 def _viz_crosbi(df, mo, mode, px):
     mo.stop(mode.value != "crosbi_osoba_mbz")
     if "vrsta" in df.columns and not df.empty:
