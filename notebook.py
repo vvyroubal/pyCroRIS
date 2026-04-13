@@ -518,6 +518,22 @@ def _viz_ppg(df, mo, mode, px):
 
 
 @app.cell
+def _viz_mozvag_financijeri(df, mo, mode, px):
+    mo.stop(mode.value != "mozvag_financijeri")
+    if "nadleznost" in df.columns and not df.empty:
+        _n = df["nadleznost"].dropna().value_counts().reset_index()
+        _n.columns = ["nadleznost", "broj"]
+        _fig = px.bar(
+            _n, x="broj", y="nadleznost", orientation="h",
+            title="Financijeri po nadležnosti",
+            color="broj", color_continuous_scale="Blues",
+        )
+        _fig.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
+        mo.plotly(_fig)
+    return
+
+
+@app.cell
 def _export_section(df, mo):
     mo.stop(df is None or df.empty)
     mo.md("---\n## Preuzimanje podataka")
