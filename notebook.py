@@ -428,6 +428,30 @@ def _viz_financijeri(df, mo, mode, px):
 
 
 @app.cell
+def _viz_akreditacije(df, mo, mode, px):
+    mo.stop(mode.value != "znan_akred")
+    charts = []
+    if "vrsta_zaposlenja" in df.columns and not df.empty:
+        _v = df["vrsta_zaposlenja"].value_counts().reset_index()
+        _v.columns = ["vrsta", "broj"]
+        charts.append(mo.plotly(
+            px.pie(_v, names="vrsta", values="broj",
+                   title="Akreditacije po vrsti zaposlenja", hole=0.4)
+        ))
+    if "podrucje" in df.columns and not df.empty:
+        _p = df["podrucje"].dropna().value_counts().reset_index()
+        _p.columns = ["podrucje", "broj"]
+        charts.append(mo.plotly(
+            px.bar(_p, x="podrucje", y="broj",
+                   title="Akreditacije po znanstvenom području",
+                   color="broj", color_continuous_scale="Teal")
+        ))
+    if charts:
+        mo.vstack(charts)
+    return
+
+
+@app.cell
 def _viz_crosbi(df, mo, mode, px):
     mo.stop(mode.value != "crosbi_osoba_mbz")
     if "vrsta" in df.columns and not df.empty:
