@@ -199,7 +199,7 @@ def _fetch(
     ustanova_id_input,
 ):
     from crosbi.endpoints import (
-        mozvag, projekti, osobe, ustanove, financijeri,
+        mozvag, projekti, osobe, financijeri,
         upisnik, publikacije_crosbi, oprema_api, casopisi,
         dogadanja, znanstvenici,
     )
