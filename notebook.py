@@ -367,12 +367,14 @@ def _proj_viz(mo, proj_df, px):
                   color="broj", color_continuous_scale="Teal")
     _bar.update_layout(xaxis_tickangle=-30, showlegend=False)
 
-    _tl = proj_df.dropna(subset=["pocetak", "kraj"]).copy()
+    _tl = proj_df.dropna(subset=["pocetak"]).copy()
+    _danas = pd.Timestamp.today().normalize()
+    _tl["kraj_viz"] = _tl["kraj"].fillna(_danas)
 
     _charts = [mo.as_html(_bar)]
     if not _tl.empty:
         _tl["label"] = _tl["akronim"].where(_tl["akronim"] != "", _tl["sifra"])
-        _gantt = px.timeline(_tl, x_start="pocetak", x_end="kraj", y="label",
+        _gantt = px.timeline(_tl, x_start="pocetak", x_end="kraj_viz", y="label",
                              color="tip", title=f"Timeline projekata ({len(_tl)})")
         _gantt.update_yaxes(autorange="reversed")
         _gantt.update_layout(height=max(350, len(_tl) * 25))
@@ -515,9 +517,10 @@ def _mozvag_viz(mo, mozvag_df, px):
         ))
 
     # Gantt timeline
-    _tl = mozvag_df.dropna(subset=["start_date", "end_date"]).copy()
+    _tl = mozvag_df.dropna(subset=["start_date"]).copy()
+    _tl["end_date_viz"] = _tl["end_date"].fillna(pd.Timestamp.today().normalize())
     if not _tl.empty:
-        _gantt = px.timeline(_tl, x_start="start_date", x_end="end_date",
+        _gantt = px.timeline(_tl, x_start="start_date", x_end="end_date_viz",
                              y="naziv", color="vrsta",
                              title=f"Timeline MOZVAG projekata ({len(_tl)})")
         _gantt.update_yaxes(autorange="reversed")
