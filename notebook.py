@@ -265,20 +265,48 @@ def _pub_fetch(mo, pub_btn, ustanova_dropdown, pub_count, CrorisClient, CROSBI_B
 def _pub_df(mo, pub_rows, pd):
     mo.stop(not pub_rows)
     pub_df = pd.DataFrame(pub_rows)
+    pub_df["godina"] = pd.to_numeric(pub_df["godina"], errors="coerce")
     return (pub_df,)
 
 
 @app.cell
-def _pub_viz(mo, pub_df, pd, px):
-    mo.stop(pub_df is None or pub_df.empty)
+def _pub_year_slider(mo, pub_df):
+    _years = pub_df["godina"].dropna().astype(int)
+    _min = int(_years.min())
+    _max = int(_years.max())
+    pub_year_slider = mo.ui.range_slider(
+        start=_min,
+        stop=_max,
+        step=1,
+        value=[_min, _max],
+        label=f"Raspon godina ({_min}–{_max})",
+        show_value=True,
+    )
+    mo.vstack([
+        mo.md("**Filtriraj po godini objave:**"),
+        pub_year_slider,
+    ])
+    return (pub_year_slider,)
 
-    _v = pub_df["vrsta"].replace("", "Nepoznato").value_counts().reset_index()
+
+@app.cell
+def _pub_filtered(pub_df, pub_year_slider, pd):
+    _lo, _hi = pub_year_slider.value
+    pub_df_filtered = pub_df[
+        pub_df["godina"].between(_lo, _hi, inclusive="both")
+    ].copy()
+    return (pub_df_filtered,)
+
+
+@app.cell
+def _pub_viz(mo, pub_df_filtered, pd, px):
+    mo.stop(pub_df_filtered is None or pub_df_filtered.empty)
+
+    _v = pub_df_filtered["vrsta"].replace("", "Nepoznato").value_counts().reset_index()
     _v.columns = ["vrsta", "broj"]
     _pie = px.pie(_v, names="vrsta", values="broj", title="Publikacije po vrsti", hole=0.4)
 
-    _g = (pub_df.dropna(subset=["godina"])
-          .assign(godina=lambda _df: pd.to_numeric(_df["godina"], errors="coerce"))
-          .dropna(subset=["godina"])
+    _g = (pub_df_filtered.dropna(subset=["godina"])
           .groupby("godina").size().reset_index(name="broj")
           .sort_values("godina"))
     _bar = px.bar(_g, x="godina", y="broj", title="Publikacije po godini",
@@ -290,10 +318,10 @@ def _pub_viz(mo, pub_df, pd, px):
 
 
 @app.cell
-def _pub_table(mo, pub_df):
-    mo.stop(pub_df is None or pub_df.empty)
-    mo.md("### Tablica publikacija")
-    mo.ui.dataframe(pub_df[["naslov", "autori", "vrsta", "godina", "casopis", "doi", "status"]])
+def _pub_table(mo, pub_df_filtered):
+    mo.stop(pub_df_filtered is None or pub_df_filtered.empty)
+    mo.md(f"### Tablica publikacija ({len(pub_df_filtered)} zapisa)")
+    mo.ui.dataframe(pub_df_filtered[["naslov", "autori", "vrsta", "godina", "casopis", "doi", "status"]])
     return
 
 
