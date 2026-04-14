@@ -205,7 +205,7 @@ def _pub_header(mo, pub_count, pub_error):
 
 @app.cell
 def _pub_loader(mo, pub_count):
-    pub_btn = mo.ui.run_button(label=f"Učitaj publikacije (max 200 od {pub_count})")
+    pub_btn = mo.ui.run_button(label=f"Učitaj publikacije ({pub_count})")
     pub_btn
     return (pub_btn,)
 
@@ -356,6 +356,8 @@ def _proj_df(mo, proj_list, pd):
         "total_cost": "total_cost",
         "currency_code": "currency",
     })
+    proj_df["pocetak"] = pd.to_datetime(proj_df["pocetak"], errors="coerce")
+    proj_df["kraj"]    = pd.to_datetime(proj_df["kraj"],    errors="coerce")
     return (proj_df,)
 
 
@@ -369,10 +371,7 @@ def _proj_viz(mo, proj_df, pd, px):
                   color="broj", color_continuous_scale="Teal")
     _bar.update_layout(xaxis_tickangle=-30, showlegend=False)
 
-    _tl = proj_df.dropna(subset=["pocetak", "kraj"]).copy()
-    _tl["pocetak"] = pd.to_datetime(_tl["pocetak"], errors="coerce")
-    _tl["kraj"]    = pd.to_datetime(_tl["kraj"],    errors="coerce")
-    _tl = _tl.dropna(subset=["pocetak", "kraj"]).head(30)
+    _tl = proj_df.dropna(subset=["pocetak", "kraj"]).head(30).copy()
 
     _charts = [mo.as_html(_bar)]
     if not _tl.empty:
@@ -491,6 +490,8 @@ def _mozvag_fetch(mo, mozvag_btn, ustanova_dropdown, auth_client, godina_input, 
 def _mozvag_df(mo, mozvag_rows, pd):
     mo.stop(not mozvag_rows)
     mozvag_df = pd.DataFrame(mozvag_rows)
+    mozvag_df["start_date"] = pd.to_datetime(mozvag_df["start_date"], errors="coerce")
+    mozvag_df["end_date"]   = pd.to_datetime(mozvag_df["end_date"],   errors="coerce")
     return (mozvag_df,)
 
 
@@ -519,10 +520,7 @@ def _mozvag_viz(mo, mozvag_df, pd, px):
         ))
 
     # Gantt timeline
-    _tl = mozvag_df.dropna(subset=["start_date", "end_date"]).copy()
-    _tl["start_date"] = pd.to_datetime(_tl["start_date"], errors="coerce")
-    _tl["end_date"]   = pd.to_datetime(_tl["end_date"],   errors="coerce")
-    _tl = _tl.dropna(subset=["start_date", "end_date"]).head(30)
+    _tl = mozvag_df.dropna(subset=["start_date", "end_date"]).head(30).copy()
     if not _tl.empty:
         _gantt = px.timeline(_tl, x_start="start_date", x_end="end_date",
                              y="naziv", color="vrsta",
