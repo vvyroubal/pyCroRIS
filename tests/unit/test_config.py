@@ -28,7 +28,7 @@ class TestConfigDefaults:
     def test_default_timeout(self, monkeypatch):
         monkeypatch.delenv("CRORIS_TIMEOUT", raising=False)
         cfg = Config()
-        assert cfg.timeout == 30
+        assert cfg.timeout == 60
 
     def test_default_credentials_empty(self, monkeypatch):
         monkeypatch.delenv("CRORIS_USERNAME", raising=False)

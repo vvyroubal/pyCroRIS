@@ -17,7 +17,7 @@ app = marimo.App(width="wide", app_title="CroRIS Ustanova Explorer")
 
 
 # ---------------------------------------------------------------------------
-# IMPORTS + KONSTANTE
+# IMPORTS + KLIJENT
 # ---------------------------------------------------------------------------
 
 @app.cell
@@ -29,17 +29,21 @@ def _imports():
     import marimo as mo
     import pandas as pd
     import plotly.express as px
-    import requests
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    HEADERS        = {"Accept": "application/hal+json"}
-    USTANOVE_BASE  = "https://www.croris.hr/ustanove-api"
-    CROSBI_BASE    = "https://www.croris.hr/crosbi-api"
-    PROJEKTI_BASE  = "https://www.croris.hr/projekti-api"
-    ZNAN_BASE      = "https://www.croris.hr/znanstvenici-api"
-    TIMEOUT        = 30
+    from crosbi.client import CrorisClient
+    from crosbi.config import Config, CROSBI_BASE_URL
+    from crosbi.endpoints.upisnik import get_sve_aktivne_ustanove
+    from crosbi.endpoints.projekti import get_projekti_po_ustanovi
+    from crosbi.endpoints.mozvag import get_projekti_ustanove as get_mozvag_projekti
+    from crosbi.endpoints.znanstvenici import get_akreditacije_ustanove
 
-    return mo, pd, px, requests, ThreadPoolExecutor, as_completed, HEADERS, USTANOVE_BASE, CROSBI_BASE, PROJEKTI_BASE, ZNAN_BASE, TIMEOUT
+    return (
+        mo, pd, px, ThreadPoolExecutor, as_completed,
+        CrorisClient, Config, CROSBI_BASE_URL,
+        get_sve_aktivne_ustanove, get_projekti_po_ustanovi,
+        get_mozvag_projekti, get_akreditacije_ustanove,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -47,19 +51,15 @@ def _imports():
 # ---------------------------------------------------------------------------
 
 @app.cell
-def _load_ustanove(requests, HEADERS, USTANOVE_BASE):
-    _r = requests.get(
-        f"{USTANOVE_BASE}/upisnik-ustanova/ustanova",
-        headers=HEADERS, timeout=30,
-    )
-    _r.raise_for_status()
-    _raw = _r.json().get("_embedded", {}).get("ustanove", [])
-    _sorted = sorted(_raw, key=lambda u: u.get("puniNaziv", ""))
+def _load_ustanove(CrorisClient, get_sve_aktivne_ustanove):
+    _client = CrorisClient()
+    _all = get_sve_aktivne_ustanove(client=_client)
+    _sorted = sorted(_all, key=lambda u: u.puni_naziv or "")
 
-    ustanove_map = {str(u["id"]): u for u in _sorted}
+    ustanove_map = {str(u.id): u for u in _sorted}
     # Marimo dropdown: {label_za_prikaz: vrijednost_value}
     dropdown_options = {
-        f"{u.get('kratica', '?')} — {u.get('puniNaziv', 'Nepoznato')}": str(u["id"])
+        f"{u.kratica or '?'} — {u.puni_naziv or 'Nepoznato'}": str(u.id)
         for u in _sorted
     }
     return ustanove_map, dropdown_options
@@ -101,38 +101,40 @@ def _ustanova_info(mo, ustanova_dropdown, ustanove_map):
         ustanova_dropdown.value is None,
         mo.md("*Odaberi ustanovu iz izbornika iznad.*"),
     )
-    _u    = ustanove_map[ustanova_dropdown.value]
-    _adr  = _u.get("adresa", {}) or {}
-    _kon  = _u.get("kontakt", {}) or {}
-    _nad  = _u.get("nadUstanova")
-    _vrst = _u.get("vrstaUstanove", {}) or {}
-    _tip  = ", ".join(t.get("naziv", "") for t in _u.get("tipUstanove", [])) or "—"
+    _u   = ustanove_map[ustanova_dropdown.value]
+    _adr = _u.adresa
+    _kon = _u.kontakt
+    _nad = _u.nad_ustanova
+    _vrst = _u.vrsta_ustanove
+    _tip  = ", ".join(t.naziv or "" for t in (_u.tip_ustanova or [])) or "—"
     _adr_str = ", ".join(filter(None, [
-        _adr.get("ulicaBr"), _adr.get("postanskiBroj"), _adr.get("mjesto")
+        _adr.ulica_br if _adr else None,
+        _adr.postanskI_broj if _adr else None,
+        _adr.mjesto if _adr else None,
     ])) or "—"
-    _web  = _kon.get("web", "")
-    _web_md = f"[{_web}](https://{_web})" if _web else "—"
+    _web  = (_kon.web or "") if _kon else ""
+    _web_md = f"[{_web}]({_web})" if _web else "—"
 
     mo.vstack([
-        mo.md(f"## {_u.get('puniNaziv', '—')}"),
-        mo.md(f"*{_u.get('puniNazivEn', '')}*") if _u.get("puniNazivEn") else mo.md(""),
+        mo.md(f"## {_u.puni_naziv or '—'}"),
+        mo.md(f"*{_u.puni_naziv_en}*") if _u.puni_naziv_en else mo.md(""),
         mo.hstack([
-            mo.stat(label="Kratica",    value=_u.get("kratica", "—")),
-            mo.stat(label="MBU",        value=_u.get("mbu", "—")),
-            mo.stat(label="Županija",   value=_u.get("zupanija", "—")),
-            mo.stat(label="Vlasništvo", value=_u.get("tipVlasnistva", "—")),
+            mo.stat(label="Kratica",    value=_u.kratica or "—"),
+            mo.stat(label="MBU",        value=_u.mbu or "—"),
+            mo.stat(label="Županija",   value=_u.zupanija or "—"),
+            mo.stat(label="Vlasništvo", value=_u.tip_vlasnistva or "—"),
         ], gap=2),
         mo.md(f"""
 | Polje | Vrijednost |
 |---|---|
-| Vrsta | {_vrst.get("naziv", "—")} |
+| Vrsta | {_vrst.naziv if _vrst else "—"} |
 | Tip | {_tip} |
 | Adresa | {_adr_str} |
 | Web | {_web_md} |
-| E-mail | {_kon.get("email", "—")} |
-| Telefon | {_kon.get("telefon", "—")} |
-| Čelnik | {_u.get("celnik", "—")} |
-| Nadređena ustanova | {_nad["naziv"] if _nad else "—"} |
+| E-mail | {(_kon.email or "—") if _kon else "—"} |
+| Telefon | {(_kon.telefon or "—") if _kon else "—"} |
+| Čelnik | {_u.celnik or "—"} |
+| Nadređena ustanova | {_nad.naziv if _nad else "—"} |
 """),
     ])
     return
@@ -143,38 +145,37 @@ def _ustanova_info(mo, ustanova_dropdown, ustanove_map):
 # ---------------------------------------------------------------------------
 
 @app.cell
-def _counts(mo, ustanova_dropdown, ustanove_map, requests, HEADERS, CROSBI_BASE, PROJEKTI_BASE, TIMEOUT):
+def _counts(mo, ustanova_dropdown, ustanove_map, CrorisClient, CROSBI_BASE_URL, get_projekti_po_ustanovi):
     mo.stop(ustanova_dropdown.value is None)
 
-    _uid  = ustanova_dropdown.value
-    _u    = ustanove_map[_uid]
-    _mbu  = _u.get("mbu", "")
+    _uid = ustanova_dropdown.value
+    _u   = ustanove_map[_uid]
+    _mbu = _u.mbu or ""
 
-    # CROSBI count
+    _client = CrorisClient()
+
+    # CROSBI count — dohvati raw HAL+JSON za listu linkova publikacija
     pub_count = 0
     pub_error = None
     try:
-        _rc = requests.get(f"{CROSBI_BASE}/ustanova/{_uid}", headers=HEADERS, timeout=TIMEOUT)
-        if _rc.status_code == 200:
-            pub_count = len(_rc.json().get("_links", {}).get("publikacije", []))
-        elif _rc.status_code != 404:
-            pub_error = f"HTTP {_rc.status_code}"
+        _crosbi_data = _client.get(f"{CROSBI_BASE_URL}/ustanova/{_uid}")
+        pub_count = len(_crosbi_data.get("_links", {}).get("publikacije", []))
     except Exception as _e:
-        pub_error = f"Timeout/greška: {_e}"
+        _status = getattr(getattr(_e, "response", None), "status_code", None)
+        if _status == 404:
+            pub_count = 0
+        else:
+            pub_error = f"Greška: {_e}"
 
     # Projekti count
+    proj_list  = []
     proj_count = None
     proj_error = None
-    proj_raw   = []
     try:
-        _rp = requests.get(f"{PROJEKTI_BASE}/projekt/ustanova/{_mbu}", headers=HEADERS, timeout=TIMEOUT)
-        if _rp.status_code == 200:
-            proj_raw   = _rp.json().get("_embedded", {}).get("projekti", [])
-            proj_count = len(proj_raw)
-        else:
-            proj_error = f"HTTP {_rp.status_code}"
+        proj_list  = get_projekti_po_ustanovi(_mbu, client=_client)
+        proj_count = len(proj_list)
     except Exception:
-        proj_error = f"Endpoint nije odgovorio u {TIMEOUT}s."
+        proj_error = f"Endpoint nije odgovorio na vrijeme."
 
     mo.vstack([
         mo.md("---\n### Javni podaci"),
@@ -187,7 +188,7 @@ def _counts(mo, ustanova_dropdown, ustanove_map, requests, HEADERS, CROSBI_BASE,
                 else mo.callout(mo.md(f"**Projekti greška:** {proj_error}"), kind="warn"),
         ], gap=3),
     ])
-    return pub_count, pub_error, proj_raw, proj_error
+    return pub_count, pub_error, proj_list, proj_error
 
 
 # ---------------------------------------------------------------------------
@@ -210,25 +211,26 @@ def _pub_loader(mo, pub_count):
 
 
 @app.cell
-def _pub_fetch(mo, pub_btn, ustanova_dropdown, pub_count, requests, HEADERS, CROSBI_BASE, TIMEOUT, ThreadPoolExecutor, as_completed):
+def _pub_fetch(mo, pub_btn, ustanova_dropdown, pub_count, CrorisClient, CROSBI_BASE_URL, ThreadPoolExecutor, as_completed):
     mo.stop(not pub_btn.value,
         mo.callout(mo.md("Pritisni **Učitaj publikacije**."), kind="neutral"))
     mo.stop(ustanova_dropdown.value is None)
 
-    _uid = ustanova_dropdown.value
+    _uid    = ustanova_dropdown.value
+    _client = CrorisClient()
     pub_rows = []
     _pub_err = None
 
     def _fetch_one(_url):
-        _r = requests.get(_url, headers=HEADERS, timeout=TIMEOUT)
-        _r.raise_for_status()
-        return _r.json()
+        return _client.get(_url)
 
     try:
         with mo.status.spinner(title="Dohvaćam popis publikacija..."):
-            _rc = requests.get(f"{CROSBI_BASE}/ustanova/{_uid}", headers=HEADERS, timeout=TIMEOUT)
-            _rc.raise_for_status()
-            _urls = [lnk["href"] for lnk in _rc.json().get("_links", {}).get("publikacije", [])[:200]]
+            _crosbi_data = _client.get(f"{CROSBI_BASE_URL}/ustanova/{_uid}")
+            _urls = [
+                lnk["href"]
+                for lnk in _crosbi_data.get("_links", {}).get("publikacije", [])[:200]
+            ]
 
         with mo.status.spinner(title=f"Dohvaćam {len(_urls)} publikacija..."):
             with ThreadPoolExecutor(max_workers=10) as _pool:
@@ -300,8 +302,8 @@ def _pub_table(mo, pub_df):
 # ---------------------------------------------------------------------------
 
 @app.cell
-def _proj_header(mo, proj_error, proj_raw):
-    _empty = proj_error is not None or not proj_raw
+def _proj_header(mo, proj_error, proj_list):
+    _empty = proj_error is not None or not proj_list
     mo.vstack([
         mo.md("---\n## Projekti (CroRIS)"),
         mo.callout(mo.md(proj_error or "Nema projekata za ovu ustanovu."),
@@ -312,25 +314,20 @@ def _proj_header(mo, proj_error, proj_raw):
 
 
 @app.cell
-def _proj_df(mo, proj_raw, pd):
-    mo.stop(not proj_raw)
-    _rows = []
-    for _p in proj_raw:
-        _tip    = _p.get("tipProjekta", {}) or {}
-        _titles = _p.get("title", [])
-        _rows.append({
-            "id":       _p.get("id"),
-            "sifra":    _p.get("hrSifraProjekta", ""),
-            "akronim":  _p.get("acro", ""),
-            "naziv_hr": next((t["text"] for t in _titles if t.get("language") == "hr"), ""),
-            "naziv_en": next((t["text"] for t in _titles if t.get("language") == "en"), ""),
-            "tip":      _tip.get("naziv", ""),
-            "pocetak":  _p.get("pocetak"),
-            "kraj":     _p.get("kraj"),
-            "total_cost": _p.get("totalCost"),
-            "currency": _p.get("currencyCode", ""),
-        })
+def _proj_df(mo, proj_list, pd):
+    mo.stop(not proj_list)
+    _rows = [p.to_dict() for p in proj_list]
     proj_df = pd.DataFrame(_rows)
+    # Preimenuj stupce za konzistentnost s vizualizacijama
+    proj_df = proj_df.rename(columns={
+        "hr_sifra_projekta": "sifra",
+        "acro": "akronim",
+        "title_hr": "naziv_hr",
+        "title_en": "naziv_en",
+        "tip_projekta": "tip",
+        "total_cost": "total_cost",
+        "currency_code": "currency",
+    })
     return (proj_df,)
 
 
@@ -338,7 +335,7 @@ def _proj_df(mo, proj_raw, pd):
 def _proj_viz(mo, proj_df, pd, px):
     mo.stop(proj_df is None or proj_df.empty)
 
-    _t = proj_df["tip"].replace("", "Nepoznato").value_counts().reset_index()
+    _t = proj_df["tip"].replace("", "Nepoznato").fillna("Nepoznato").value_counts().reset_index()
     _t.columns = ["tip", "broj"]
     _bar = px.bar(_t, x="tip", y="broj", title="Projekti po tipu",
                   color="broj", color_continuous_scale="Teal")
@@ -396,18 +393,19 @@ def _auth_inputs(mo):
 
 
 @app.cell
-def _auth_status(mo, username_input, password_input):
-    import os
-    _u = username_input.value or os.getenv("CRORIS_USERNAME", "")
-    _p = password_input.value or os.getenv("CRORIS_PASSWORD", "")
-    auth_ok      = bool(_u and _p)
-    auth_creds   = (_u, _p) if auth_ok else None
+def _auth_status(mo, username_input, password_input, CrorisClient, Config):
+    import os as _os
+    _u = username_input.value or _os.getenv("CRORIS_USERNAME", "")
+    _p = password_input.value or _os.getenv("CRORIS_PASSWORD", "")
+    auth_ok = bool(_u and _p)
 
     if auth_ok:
+        auth_client = CrorisClient(Config(username=_u, password=_p))
         mo.callout(mo.md("Kredencijali uneseni. Pritisni gumbe ispod za dohvat podataka."), kind="success")
     else:
+        auth_client = None
         mo.callout(mo.md("Unesi kredencijale za dohvat MOZVAG i akreditacija."), kind="neutral")
-    return auth_ok, auth_creds
+    return auth_ok, auth_client
 
 
 # ---------------------------------------------------------------------------
@@ -430,50 +428,29 @@ def _mozvag_loader(mo):
 
 
 @app.cell
-def _mozvag_fetch(mo, mozvag_btn, ustanova_dropdown, ustanove_map, auth_creds, godina_input, requests, HEADERS, PROJEKTI_BASE, TIMEOUT):
+def _mozvag_fetch(mo, mozvag_btn, ustanova_dropdown, auth_client, godina_input, get_mozvag_projekti):
     mo.stop(not mozvag_btn.value,
         mo.callout(mo.md("Pritisni **Učitaj MOZVAG projekte**."), kind="neutral"))
     mo.stop(ustanova_dropdown.value is None)
-    mo.stop(auth_creds is None)
+    mo.stop(auth_client is None)
 
-    _uid    = ustanova_dropdown.value
+    _uid    = int(ustanova_dropdown.value)
     _godina = int(godina_input.value)
     mozvag_rows = []
     _mozvag_err = None
 
     try:
         with mo.status.spinner(title=f"Dohvaćam MOZVAG projekte za godinu {_godina}..."):
-            _sess = requests.Session()
-            _sess.auth    = auth_creds
-            _sess.headers.update(HEADERS)
-            _r = _sess.get(f"{PROJEKTI_BASE}/mozvag/{_uid}/{_godina}", timeout=TIMEOUT)
-            if _r.status_code == 200:
-                _items = _r.json().get("_embedded", {}).get("projekti", [])
-                if not _items and isinstance(_r.json(), list):
-                    _items = _r.json()
-                for _p in _items:
-                    _fins = _p.get("financijeri", [])
-                    mozvag_rows.append({
-                        "projekt_id":       _p.get("projektId"),
-                        "naziv":            _p.get("naziv", ""),
-                        "vrsta":            _p.get("vrstaProjektaNaziv", ""),
-                        "uloga":            _p.get("ulogaNaziv", ""),
-                        "start_date":       _p.get("startDate"),
-                        "end_date":         _p.get("endDate"),
-                        "ustanova_iznos":   _p.get("ustanovaIznos"),
-                        "ustanova_valuta":  _p.get("ustanovaValuta", ""),
-                        "projekt_iznos":    _p.get("projektIznos"),
-                        "projekt_valuta":   _p.get("projektValuta", ""),
-                        "financijeri":      ", ".join(f.get("nazivHr", "") for f in _fins if f.get("nazivHr")),
-                    })
-            elif _r.status_code == 401:
-                _mozvag_err = "Autentikacija nije uspjela — provjeri kredencijale."
-            elif _r.status_code == 404:
-                mozvag_rows = []
-            else:
-                _mozvag_err = f"HTTP {_r.status_code}"
+            _projekti = get_mozvag_projekti(_uid, _godina, client=auth_client)
+            mozvag_rows = [p.to_dict() for p in _projekti]
     except Exception as _e:
-        _mozvag_err = str(_e)
+        _status = getattr(getattr(_e, "response", None), "status_code", None)
+        if _status == 401:
+            _mozvag_err = "Autentikacija nije uspjela — provjeri kredencijale."
+        elif _status == 404:
+            mozvag_rows = []
+        else:
+            _mozvag_err = str(_e)
 
     if _mozvag_err:
         mo.callout(mo.md(f"**Greška:** {_mozvag_err}"), kind="danger")
@@ -496,7 +473,7 @@ def _mozvag_viz(mo, mozvag_df, pd, px):
     _charts = []
 
     # Pie po vrsti projekta
-    _v = mozvag_df["vrsta"].replace("", "Nepoznato").value_counts().reset_index()
+    _v = mozvag_df["vrsta"].replace("", "Nepoznato").fillna("Nepoznato").value_counts().reset_index()
     _v.columns = ["vrsta", "broj"]
     _charts.append(mo.as_html(
         px.pie(_v, names="vrsta", values="broj", title="MOZVAG projekti po vrsti", hole=0.4)
@@ -559,46 +536,36 @@ def _akred_loader(mo):
 
 
 @app.cell
-def _akred_fetch(mo, akred_btn, ustanova_dropdown, auth_creds, requests, HEADERS, ZNAN_BASE, TIMEOUT):
+def _akred_fetch(mo, akred_btn, ustanova_dropdown, auth_client, get_akreditacije_ustanove):
     mo.stop(not akred_btn.value,
         mo.callout(mo.md("Pritisni **Učitaj akreditacije**."), kind="neutral"))
     mo.stop(ustanova_dropdown.value is None)
-    mo.stop(auth_creds is None)
+    mo.stop(auth_client is None)
 
-    _uid = ustanova_dropdown.value
+    _uid = int(ustanova_dropdown.value)
     akred_rows = []
     _akred_err = None
 
     try:
         with mo.status.spinner(title="Dohvaćam akreditacije..."):
-            _sess = requests.Session()
-            _sess.auth    = auth_creds
-            _sess.headers.update(HEADERS)
-            _r = _sess.get(
-                f"{ZNAN_BASE}/osoba/akreditacija",
-                params={"cfOrgUnitId": _uid},
-                timeout=TIMEOUT,
-            )
-            if _r.status_code == 200:
-                _items = _r.json().get("_embedded", {}).get("nastavnici", [])
-                for _os in _items:
-                    akred_rows.append({
-                        "ime":              _os.get("ime", ""),
-                        "prezime":          _os.get("prezime", ""),
-                        "mbz":              _os.get("maticniBroj", ""),
-                        "vrsta_zaposlenja": _os.get("vrstaZaposlenja", ""),
-                        "podrucje":         _os.get("podrucjeNaziv", ""),
-                        "polje":            _os.get("poljeNaziv", ""),
-                        "grana":            _os.get("granaNaziv", ""),
-                        "zvanje":           _os.get("zvanjeNaziv", ""),
-                        "institucija":      _os.get("institucijaNaziv", ""),
-                    })
-            elif _r.status_code == 401:
-                _akred_err = "Autentikacija nije uspjela — provjeri kredencijale."
-            else:
-                _akred_err = f"HTTP {_r.status_code}"
+            _akreditacije = get_akreditacije_ustanove(_uid, client=auth_client)
+            akred_rows = [
+                {
+                    "ime":              a.ime or "",
+                    "prezime":          a.prezime or "",
+                    "vrsta_zaposlenja": a.vrsta_zaposlenja_hr or "",
+                    "vrsta_rad_odnosa": a.vrsta_radnog_odnosa_hr or "",
+                    "podrucje":         a.podrucje_hr or "",
+                    "polje":            a.polje_hr or "",
+                }
+                for a in _akreditacije
+            ]
     except Exception as _e:
-        _akred_err = str(_e)
+        _status = getattr(getattr(_e, "response", None), "status_code", None)
+        if _status == 401:
+            _akred_err = "Autentikacija nije uspjela — provjeri kredencijale."
+        else:
+            _akred_err = str(_e)
 
     if _akred_err:
         mo.callout(mo.md(f"**Greška:** {_akred_err}"), kind="danger")
@@ -637,12 +604,12 @@ def _akred_viz(mo, akred_df, px):
                    color="broj", color_continuous_scale="Teal")
         ))
 
-    if "zvanje" in akred_df.columns:
-        _z = akred_df["zvanje"].dropna().replace("", "Nepoznato").value_counts().reset_index()
-        _z.columns = ["zvanje", "broj"]
+    if "vrsta_rad_odnosa" in akred_df.columns:
+        _z = akred_df["vrsta_rad_odnosa"].dropna().replace("", "Nepoznato").value_counts().reset_index()
+        _z.columns = ["vrsta", "broj"]
         _charts.append(mo.as_html(
-            px.bar(_z, x="zvanje", y="broj",
-                   title="Akreditacije po zvanju",
+            px.bar(_z, x="vrsta", y="broj",
+                   title="Akreditacije po vrsti radnog odnosa",
                    color="broj", color_continuous_scale="Purples")
         ))
 
@@ -654,7 +621,7 @@ def _akred_viz(mo, akred_df, px):
 def _akred_table(mo, akred_df):
     mo.stop(akred_df is None or akred_df.empty)
     mo.md("### Tablica akreditacija")
-    mo.ui.dataframe(akred_df[["prezime", "ime", "mbz", "vrsta_zaposlenja", "zvanje", "podrucje", "polje"]])
+    mo.ui.dataframe(akred_df[["prezime", "ime", "vrsta_zaposlenja", "vrsta_rad_odnosa", "podrucje", "polje"]])
     return
 
 
