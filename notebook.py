@@ -32,7 +32,14 @@ def _imports():
     from crosbi.endpoints.upisnik import get_sve_aktivne_ustanove
     from crosbi.endpoints.projekti import get_projekti_po_ustanovi
     from crosbi.endpoints.mozvag import get_projekti_ustanove as get_mozvag_projekti
-    from crosbi.endpoints.znanstvenici import get_akreditacije_ustanove
+    from crosbi.endpoints.znanstvenici import (
+        get_akreditacije_ustanove,
+        get_znanstvenik_by_oib,
+        get_znanstvenik_by_mbz,
+    )
+    from crosbi.endpoints.casopisi import list_casopisi
+    from crosbi.endpoints.dogadanja import list_dogadanja
+    from crosbi.endpoints.oprema_api import list_oprema, list_usluge
 
     return (
         CROSBI_BASE_URL,
@@ -43,6 +50,12 @@ def _imports():
         get_mozvag_projekti,
         get_projekti_po_ustanovi,
         get_sve_aktivne_ustanove,
+        get_znanstvenik_by_mbz,
+        get_znanstvenik_by_oib,
+        list_casopisi,
+        list_dogadanja,
+        list_oprema,
+        list_usluge,
         mo,
         pd,
         px,
@@ -691,6 +704,391 @@ def _akred_table(akred_df, mo):
     mo.stop(akred_df is None or akred_df.empty)
     mo.md("### Tablica akreditacija")
     mo.ui.dataframe(akred_df[["prezime", "ime", "vrsta_zaposlenja", "vrsta_rad_odnosa", "podrucje", "polje"]])
+    return
+
+
+@app.cell
+def _oprema_header(mo):
+    mo.md("---\n## Oprema (CroRIS)")
+    return
+
+
+@app.cell
+def _oprema_loader(mo):
+    oprema_btn = mo.ui.run_button(label="Učitaj opremu i usluge")
+    oprema_btn
+    return (oprema_btn,)
+
+
+@app.cell
+def _oprema_fetch(CrorisClient, ThreadPoolExecutor, list_oprema, list_usluge, mo, oprema_btn):
+    mo.stop(not oprema_btn.value,
+        mo.callout(mo.md("Pritisni **Učitaj opremu i usluge**."), kind="neutral"))
+
+    oprema_rows = []
+    usluge_rows = []
+    _err = None
+    try:
+        _client = CrorisClient()
+        with ThreadPoolExecutor(max_workers=2) as _pool:
+            _fut_oprema = _pool.submit(lambda: list(list_oprema(client=_client)))
+            _fut_usluge = _pool.submit(lambda: list(list_usluge(client=_client)))
+            with mo.status.spinner(title="Dohvaćam opremu i usluge..."):
+                _oprema_list = _fut_oprema.result()
+                _usluge_list = _fut_usluge.result()
+
+        for o in _oprema_list:
+            oprema_rows.append({
+                "id":            o.id,
+                "model":         o.model or "",
+                "proizvodjac":   o.proizvodjac or "",
+                "inventarni_br": o.inventarni_broj or "",
+                "godina_proiz":  o.godina_proizvodnje,
+                "kategorija":    o.kategorija.naziv if o.kategorija else "",
+                "stanje":        o.stanje.naziv if o.stanje else "",
+                "ustanova":      o.ustanova_vlasnik.naziv if o.ustanova_vlasnik else "",
+                "lokacija":      o.ustanova_lokacija.naziv if o.ustanova_lokacija else "",
+                "naziv_hr":      o.naziv.get("hr") if o.naziv else "",
+            })
+        for u in _usluge_list:
+            usluge_rows.append({
+                "id":        u.id,
+                "naziv_hr":  u.naziv.get("hr") if u.naziv else "",
+                "ustanova":  u.ustanova_naziv or "",
+                "aktivnost": u.aktivnost,
+            })
+    except Exception as _e:
+        _err = str(_e)
+
+    if _err:
+        mo.callout(mo.md(f"**Greška:** {_err}"), kind="danger")
+    else:
+        mo.callout(mo.md(
+            f"Dohvaćeno **{len(oprema_rows)}** opreme i **{len(usluge_rows)}** usluga."
+        ), kind="success")
+    return oprema_rows, usluge_rows
+
+
+@app.cell
+def _oprema_df(mo, oprema_rows, pd, usluge_rows):
+    mo.stop(not oprema_rows and not usluge_rows)
+    oprema_df  = pd.DataFrame(oprema_rows)  if oprema_rows  else pd.DataFrame()
+    usluge_df  = pd.DataFrame(usluge_rows)  if usluge_rows  else pd.DataFrame()
+    return oprema_df, usluge_df
+
+
+@app.cell
+def _oprema_viz(mo, oprema_df, px, usluge_df):
+    mo.stop(oprema_df.empty and usluge_df.empty)
+    _charts = []
+    if not oprema_df.empty:
+        _k = oprema_df["kategorija"].replace("", "Nepoznato").fillna("Nepoznato").value_counts().reset_index()
+        _k.columns = ["kategorija", "broj"]
+        _bar = px.bar(_k, x="kategorija", y="broj", title=f"Oprema po kategoriji ({len(oprema_df)})",
+                      color="broj", color_continuous_scale="Teal")
+        _bar.update_layout(xaxis_tickangle=-30, showlegend=False)
+        _charts.append(mo.as_html(_bar))
+    if not usluge_df.empty:
+        _u = usluge_df["ustanova"].replace("", "Nepoznato").fillna("Nepoznato").value_counts().nlargest(15).reset_index()
+        _u.columns = ["ustanova", "broj"]
+        _bar2 = px.bar(_u, x="broj", y="ustanova", orientation="h",
+                       title=f"Top ustanove po uslugama ({len(usluge_df)})",
+                       color="broj", color_continuous_scale="Blues")
+        _bar2.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
+        _charts.append(mo.as_html(_bar2))
+    mo.vstack(_charts)
+    return
+
+
+@app.cell
+def _oprema_table(mo, oprema_df, usluge_df):
+    mo.stop(oprema_df.empty and usluge_df.empty)
+    _tabs = {}
+    if not oprema_df.empty:
+        _tabs["Oprema"] = mo.ui.dataframe(
+            oprema_df[["naziv_hr", "model", "proizvodjac", "kategorija", "stanje", "ustanova", "lokacija"]]
+        )
+    if not usluge_df.empty:
+        _tabs["Usluge"] = mo.ui.dataframe(
+            usluge_df[["naziv_hr", "ustanova", "aktivnost"]]
+        )
+    mo.ui.tabs(_tabs)
+    return
+
+
+@app.cell
+def _casopisi_header(mo):
+    mo.md("---\n## Časopisi (CroRIS)")
+    return
+
+
+@app.cell
+def _casopisi_loader(mo):
+    casopisi_btn = mo.ui.run_button(label="Učitaj časopise")
+    casopisi_btn
+    return (casopisi_btn,)
+
+
+@app.cell
+def _casopisi_fetch(CrorisClient, list_casopisi, mo, casopisi_btn):
+    mo.stop(not casopisi_btn.value,
+        mo.callout(mo.md("Pritisni **Učitaj časopise**."), kind="neutral"))
+
+    casopisi_rows = []
+    _err_c = None
+    try:
+        _client_c = CrorisClient()
+        for _c in mo.status.progress_bar(
+            list_casopisi(client=_client_c),
+            title="Dohvaćam časopise...",
+        ):
+            casopisi_rows.append({
+                "id":             _c.id,
+                "naziv":          _c.naziv or "",
+                "drzava":         _c.drzava or "",
+                "drzava_kod":     _c.drzava_kod or "",
+                "issn":           _c.issn or "",
+                "eissn":          _c.eissn or "",
+                "godina_pocetka": _c.godina_pocetka,
+                "godina_zavrsetka": _c.godina_zavrsetka,
+            })
+    except Exception as _e:
+        _err_c = str(_e)
+
+    if _err_c:
+        mo.callout(mo.md(f"**Greška:** {_err_c}"), kind="danger")
+    else:
+        mo.callout(mo.md(f"Dohvaćeno **{len(casopisi_rows)}** časopisa."), kind="success")
+    return (casopisi_rows,)
+
+
+@app.cell
+def _casopisi_df(casopisi_rows, mo, pd):
+    mo.stop(not casopisi_rows)
+    casopisi_df = pd.DataFrame(casopisi_rows)
+    return (casopisi_df,)
+
+
+@app.cell
+def _casopisi_viz(casopisi_df, mo, px):
+    mo.stop(casopisi_df is None or casopisi_df.empty)
+    _d = casopisi_df["drzava"].replace("", "Nepoznato").fillna("Nepoznato").value_counts().nlargest(20).reset_index()
+    _d.columns = ["drzava", "broj"]
+    _bar = px.bar(_d, x="broj", y="drzava", orientation="h",
+                  title=f"Časopisi po zemlji izdavanja (top 20 od {len(casopisi_df)})",
+                  color="broj", color_continuous_scale="Teal")
+    _bar.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
+    mo.as_html(_bar)
+    return
+
+
+@app.cell
+def _casopisi_table(casopisi_df, mo):
+    mo.stop(casopisi_df is None or casopisi_df.empty)
+    mo.md(f"### Tablica časopisa ({len(casopisi_df)} zapisa)")
+    mo.ui.dataframe(casopisi_df[["naziv", "drzava", "issn", "eissn", "godina_pocetka", "godina_zavrsetka"]])
+    return
+
+
+@app.cell
+def _dogadanja_header(mo):
+    mo.md("---\n## Događanja (CroRIS)")
+    return
+
+
+@app.cell
+def _dogadanja_loader(mo):
+    dogadanja_btn = mo.ui.run_button(label="Učitaj događanja")
+    dogadanja_btn
+    return (dogadanja_btn,)
+
+
+@app.cell
+def _dogadanja_fetch(CrorisClient, dogadanja_btn, list_dogadanja, mo):
+    mo.stop(not dogadanja_btn.value,
+        mo.callout(mo.md("Pritisni **Učitaj događanja**."), kind="neutral"))
+
+    dogadanja_rows = []
+    _err_d = None
+    try:
+        _client_d = CrorisClient()
+        for _d in mo.status.progress_bar(
+            list_dogadanja(client=_client_d),
+            title="Dohvaćam događanja...",
+        ):
+            _prvo_mjesto = _d.mjesto_odrzavanja[0] if _d.mjesto_odrzavanja else None
+            _mjesto = _prvo_mjesto.mjesto_naziv if _prvo_mjesto else ""
+            _drzava = (_prvo_mjesto.drzava.naziv
+                       if _prvo_mjesto and _prvo_mjesto.drzava else "")
+            dogadanja_rows.append({
+                "id":             _d.id,
+                "naziv":          _d.get_naziv("hr"),
+                "akronim":        _d.get_akronim("hr"),
+                "vrsta":          _d.vrsta_dogadanja or "",
+                "datum_pocetka":  _d.datum_pocetka or "",
+                "datum_zavrsetka": _d.datum_zavrsetka or "",
+                "broj_sudionika": _d.broj_sudionika,
+                "mjesto":         _mjesto,
+                "drzava":         _drzava,
+            })
+    except Exception as _e:
+        _err_d = str(_e)
+
+    if _err_d:
+        mo.callout(mo.md(f"**Greška:** {_err_d}"), kind="danger")
+    else:
+        mo.callout(mo.md(f"Dohvaćeno **{len(dogadanja_rows)}** događanja."), kind="success")
+    return (dogadanja_rows,)
+
+
+@app.cell
+def _dogadanja_df(dogadanja_rows, mo, pd):
+    mo.stop(not dogadanja_rows)
+    dogadanja_df = pd.DataFrame(dogadanja_rows)
+    dogadanja_df["godina"] = pd.to_datetime(
+        dogadanja_df["datum_pocetka"], errors="coerce"
+    ).dt.year
+    return (dogadanja_df,)
+
+
+@app.cell
+def _dogadanja_viz(dogadanja_df, mo, px):
+    mo.stop(dogadanja_df is None or dogadanja_df.empty)
+    _charts = []
+    _g = dogadanja_df["godina"].dropna().astype(int).value_counts().sort_index().reset_index()
+    _g.columns = ["godina", "broj"]
+    _bar1 = px.bar(_g, x="godina", y="broj",
+                   title=f"Događanja po godini ({len(dogadanja_df)})",
+                   color="broj", color_continuous_scale="Teal")
+    _charts.append(mo.as_html(_bar1))
+
+    _v = dogadanja_df["vrsta"].replace("", "Nepoznato").fillna("Nepoznato").value_counts().reset_index()
+    _v.columns = ["vrsta", "broj"]
+    _bar2 = px.pie(_v, names="vrsta", values="broj", title="Događanja po vrsti")
+    _charts.append(mo.as_html(_bar2))
+    mo.vstack(_charts)
+    return
+
+
+@app.cell
+def _dogadanja_table(dogadanja_df, mo):
+    mo.stop(dogadanja_df is None or dogadanja_df.empty)
+    mo.md(f"### Tablica događanja ({len(dogadanja_df)} zapisa)")
+    mo.ui.dataframe(dogadanja_df[["naziv", "akronim", "vrsta", "datum_pocetka", "datum_zavrsetka", "mjesto", "drzava"]])
+    return
+
+
+@app.cell
+def _znan_header(mo):
+    mo.md("""
+    ---
+    ## Znanstvenici (pretraga)
+
+    Pretraži profil znanstvenika po OIB-u ili matičnom broju znanstvenika (MBZ).
+    Zahtijeva odobrenje MZO-a za pristup.
+    """)
+    return
+
+
+@app.cell
+def _znan_inputs(mo):
+    znan_oib_input = mo.ui.text(placeholder="npr. 12345678901", label="OIB")
+    znan_mbz_input = mo.ui.text(placeholder="npr. 123456", label="MBZ")
+    znan_search_btn = mo.ui.run_button(label="Pretraži")
+    mo.hstack([znan_oib_input, znan_mbz_input, znan_search_btn], gap=2)
+    return znan_mbz_input, znan_oib_input, znan_search_btn
+
+
+@app.cell
+def _znan_fetch(
+    CrorisClient,
+    get_znanstvenik_by_mbz,
+    get_znanstvenik_by_oib,
+    mo,
+    znan_mbz_input,
+    znan_oib_input,
+    znan_search_btn,
+):
+    mo.stop(not znan_search_btn.value,
+        mo.callout(mo.md("Unesi OIB ili MBZ i pritisni **Pretraži**."), kind="neutral"))
+    mo.stop(not znan_oib_input.value and not znan_mbz_input.value,
+        mo.callout(mo.md("Unesi OIB ili MBZ za pretragu."), kind="warn"))
+
+    znanstvenik = None
+    _err_z = None
+    try:
+        _client_z = CrorisClient()
+        with mo.status.spinner(title="Dohvaćam podatke o znanstveniku..."):
+            if znan_oib_input.value:
+                znanstvenik = get_znanstvenik_by_oib(znan_oib_input.value.strip(), client=_client_z)
+            else:
+                znanstvenik = get_znanstvenik_by_mbz(znan_mbz_input.value.strip(), client=_client_z)
+    except Exception as _e:
+        _err_z = str(_e)
+
+    if _err_z:
+        mo.callout(mo.md(f"**Greška:** {_err_z}"), kind="danger")
+    return (znanstvenik,)
+
+
+@app.cell
+def _znan_profile(mo, znanstvenik):
+    mo.stop(znanstvenik is None)
+    _z = znanstvenik
+    mo.vstack([
+        mo.md(f"### {_z.ime or ''} {_z.prezime or ''}"),
+        mo.md(f"""
+| Polje | Vrijednost |
+|---|---|
+| ID | {_z.id} |
+| OIB | {_z.oib or '—'} |
+| MBZ | {_z.maticni_broj or '—'} |
+| ORCID | {_z.orcid or '—'} |
+| E-mail | {_z.email or '—'} |
+| Najviše zvanje | {_z.max_zvanje or '—'} |
+| Aktivan | {'Da' if _z.aktivan else 'Ne'} |
+| Godina prvog zaposlenja | {_z.godina_prvog_zaposlenja or '—'} |
+"""),
+    ])
+    return
+
+
+@app.cell
+def _znan_tables(mo, pd, znanstvenik):
+    mo.stop(znanstvenik is None)
+    _z = znanstvenik
+    _tabs = {}
+
+    if _z.zaposlenja:
+        _zap_df = pd.DataFrame([{
+            "ustanova":  z.ustanova.naziv if z.ustanova else "",
+            "radno_mjesto": z.radno_mjesto or "",
+            "vrsta_zaposlenja": z.vrsta_zaposlenja or "",
+            "datum_od":  z.datum_od or "",
+            "datum_do":  z.datum_do or "",
+            "aktivno":   z.aktivno,
+        } for z in _z.zaposlenja])
+        _tabs["Zaposlenja"] = mo.ui.dataframe(_zap_df)
+
+    if _z.zvanja:
+        _zv_df = pd.DataFrame([{
+            "zvanje":   z.naziv or "",
+            "kratica":  z.kratica or "",
+            "ustanova": z.ustanova.naziv if z.ustanova else "",
+            "datum_izbora": z.datum_izbora or "",
+            "aktivan":  z.aktivan,
+        } for z in _z.zvanja])
+        _tabs["Zvanja"] = mo.ui.dataframe(_zv_df)
+
+    if _z.akademski_stupnjevi:
+        _as_df = pd.DataFrame([{
+            "stupanj":  s.naziv or "",
+            "kratica":  s.kratica or "",
+            "datum_stjecanja": s.datum_stjecanja or "",
+        } for s in _z.akademski_stupnjevi])
+        _tabs["Akademski stupnjevi"] = mo.ui.dataframe(_as_df)
+
+    mo.ui.tabs(_tabs) if _tabs else mo.md("_Nema podataka o zaposlenjima i zvanjima._")
     return
 
 
