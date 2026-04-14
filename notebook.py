@@ -39,7 +39,6 @@ def _imports():
         Config,
         CrorisClient,
         ThreadPoolExecutor,
-        as_completed,
         get_akreditacije_ustanove,
         get_mozvag_projekti,
         get_projekti_po_ustanovi,
@@ -68,7 +67,7 @@ def _load_ustanove(CrorisClient, get_sve_aktivne_ustanove):
 @app.cell
 def _header(mo):
     mo.md("""
-    # CroRIS Ustanova Explorer
+    # CroRIS Explorer
 
     Odaberi ustanovu za prikaz svih dostupnih podataka.
 
@@ -133,20 +132,10 @@ def _ustanova_info(mo, ustanova_dropdown, ustanove_map):
 
 
 @app.cell
-def _counts(
-    CROSBI_BASE_URL,
-    CrorisClient,
-    get_projekti_po_ustanovi,
-    mo,
-    ustanova_dropdown,
-    ustanove_map,
-):
+def _counts(CROSBI_BASE_URL, CrorisClient, mo, ustanova_dropdown):
     mo.stop(ustanova_dropdown.value is None)
 
     _uid = ustanova_dropdown.value
-    _u   = ustanove_map[_uid]
-    _mbu = _u.mbu or ""
-
     _client = CrorisClient()
 
     # CROSBI count — dohvati raw HAL+JSON za listu linkova publikacija
@@ -162,28 +151,15 @@ def _counts(
         else:
             pub_error = f"Greška: {_e}"
 
-    # Projekti count
-    proj_list  = []
-    proj_count = None
-    proj_error = None
-    try:
-        proj_list  = get_projekti_po_ustanovi(_mbu, client=_client)
-        proj_count = len(proj_list)
-    except Exception:
-        proj_error = f"Endpoint nije odgovorio na vrijeme."
-
     mo.vstack([
         mo.md("---\n### Javni podaci"),
         mo.hstack([
             mo.stat(label="CROSBI publikacije", value=str(pub_count))
                 if pub_error is None
                 else mo.callout(mo.md(f"**CROSBI greška:** {pub_error}"), kind="warn"),
-            mo.stat(label="Projekti (CroRIS)", value=str(proj_count) if proj_count is not None else "—")
-                if proj_error is None
-                else mo.callout(mo.md(f"**Projekti greška:** {proj_error}"), kind="warn"),
         ], gap=3),
     ])
-    return proj_error, proj_list, pub_count, pub_error
+    return pub_count, pub_error
 
 
 @app.cell
@@ -206,7 +182,6 @@ def _pub_fetch(
     CROSBI_BASE_URL,
     CrorisClient,
     ThreadPoolExecutor,
-    as_completed,
     mo,
     pub_btn,
     pub_count,
@@ -221,8 +196,11 @@ def _pub_fetch(
     pub_rows = []
     _pub_err = None
 
-    def _fetch_one(_url):
-        return _client.get(_url)
+    def _fetch_safe(_url):
+        try:
+            return _client.get(_url)
+        except Exception:
+            return None
 
     try:
         with mo.status.spinner(title="Dohvaćam popis publikacija..."):
@@ -232,25 +210,25 @@ def _pub_fetch(
                 for lnk in _crosbi_data.get("_links", {}).get("publikacije", [])
             ]
 
-        with mo.status.spinner(title=f"Dohvaćam {len(_urls)} publikacija..."):
-            with ThreadPoolExecutor(max_workers=10) as _pool:
-                for _fut in as_completed({_pool.submit(_fetch_one, u): u for u in _urls}):
-                    try:
-                        _d = _fut.result()
-                        pub_rows.append({
-                            "crosbi_id": _d.get("crosbiId"),
-                            "naslov":    _d.get("naslov", ""),
-                            "autori":    _d.get("autori", ""),
-                            "vrsta":     _d.get("vrsta", ""),
-                            "tip":       _d.get("tip", ""),
-                            "godina":    _d.get("godina"),
-                            "casopis":   _d.get("casopis", ""),
-                            "doi":       _d.get("doi", ""),
-                            "status":    _d.get("status", ""),
-                            "izdavac":   _d.get("izdavac", ""),
-                        })
-                    except Exception:
-                        pass
+        with ThreadPoolExecutor(max_workers=10) as _pool:
+            for _d in mo.status.progress_bar(
+                _pool.map(_fetch_safe, _urls),
+                total=len(_urls),
+                title=f"Dohvaćam publikacije ({len(_urls)})...",
+            ):
+                if _d is not None:
+                    pub_rows.append({
+                        "crosbi_id": _d.get("crosbiId"),
+                        "naslov":    _d.get("naslov", ""),
+                        "autori":    _d.get("autori", ""),
+                        "vrsta":     _d.get("vrsta", ""),
+                        "tip":       _d.get("tip", ""),
+                        "godina":    _d.get("godina"),
+                        "casopis":   _d.get("casopis", ""),
+                        "doi":       _d.get("doi", ""),
+                        "status":    _d.get("status", ""),
+                        "izdavac":   _d.get("izdavac", ""),
+                    })
     except Exception as _e:
         _pub_err = str(_e)
 
@@ -280,12 +258,9 @@ def _pub_year_slider(mo, pub_df):
         step=1,
         value=[_min, _max],
         label=f"Raspon godina ({_min}–{_max})",
-        show_value=True,
+        show_value=False,
     )
-    mo.vstack([
-        mo.md("**Filtriraj po godini objave:**"),
-        pub_year_slider,
-    ])
+    pub_year_slider
     return (pub_year_slider,)
 
 
@@ -326,15 +301,52 @@ def _pub_table(mo, pub_df_filtered):
 
 
 @app.cell
-def _proj_header(mo, proj_error, proj_list):
-    _empty = proj_error is not None or not proj_list
-    mo.vstack([
-        mo.md("---\n## Projekti (CroRIS)"),
-        mo.callout(mo.md(proj_error or "Nema projekata za ovu ustanovu."),
-                   kind="warn" if proj_error else "neutral"),
-    ]) if _empty else mo.md("---\n## Projekti (CroRIS)")
-    mo.stop(_empty)
+def _proj_section_header(mo):
+    mo.md("""
+    ---
+    ## Projekti (CroRIS)
+    """)
     return
+
+
+@app.cell
+def _proj_loader(mo, ustanova_dropdown):
+    mo.stop(ustanova_dropdown.value is None)
+    proj_btn = mo.ui.run_button(label="Učitaj projekte")
+    proj_btn
+    return (proj_btn,)
+
+
+@app.cell
+def _proj_fetch(
+    CrorisClient,
+    get_projekti_po_ustanovi,
+    mo,
+    proj_btn,
+    ustanova_dropdown,
+    ustanove_map,
+):
+    mo.stop(not proj_btn.value,
+        mo.callout(mo.md("Pritisni **Učitaj projekte**."), kind="neutral"))
+    mo.stop(ustanova_dropdown.value is None)
+
+    _uid  = ustanova_dropdown.value
+    _mbu  = ustanove_map[_uid].mbu or ""
+    proj_list  = []
+    proj_error = None
+    try:
+        with mo.status.spinner(title="Dohvaćam projekte..."):
+            proj_list = get_projekti_po_ustanovi(_mbu, client=CrorisClient())
+    except Exception as _e:
+        proj_error = str(_e)
+
+    if proj_error:
+        mo.callout(mo.md(f"**Greška:** {proj_error}"), kind="danger")
+    elif not proj_list:
+        mo.callout(mo.md("Nema projekata za ovu ustanovu."), kind="neutral")
+    else:
+        mo.callout(mo.md(f"Dohvaćeno **{len(proj_list)}** projekata."), kind="success")
+    return (proj_list,)
 
 
 @app.cell
@@ -342,7 +354,6 @@ def _proj_df(mo, pd, proj_list):
     mo.stop(not proj_list)
     _rows = [p.to_dict() for p in proj_list]
     proj_df = pd.DataFrame(_rows)
-    # Preimenuj stupce za konzistentnost s vizualizacijama
     proj_df = proj_df.rename(columns={
         "hr_sifra_projekta": "sifra",
         "acro": "akronim",
@@ -358,26 +369,54 @@ def _proj_df(mo, pd, proj_list):
 
 
 @app.cell
-def _proj_viz(mo, proj_df, px):
-    mo.stop(proj_df is None or proj_df.empty)
+def _proj_year_slider(mo, proj_df):
+    _years = proj_df["pocetak"].dropna().dt.year
+    _min = int(_years.min())
+    _max = int(_years.max())
+    proj_year_slider = mo.ui.range_slider(
+        start=_min, stop=_max, step=1, value=[_min, _max],
+        label=f"Raspon godina početka projekta ({_min}–{_max})", show_value=False,
+    )
+    proj_year_slider
+    return (proj_year_slider,)
 
-    _t = proj_df["tip"].replace("", "Nepoznato").fillna("Nepoznato").value_counts().reset_index()
+
+@app.cell
+def _proj_filtered(proj_df, proj_year_slider):
+    _lo, _hi = proj_year_slider.value
+    proj_df_filtered = proj_df[
+        proj_df["pocetak"].dt.year.between(_lo, _hi)
+    ].copy()
+    return (proj_df_filtered,)
+
+
+@app.cell
+def _proj_viz(mo, pd, proj_df_filtered, px):
+    mo.stop(proj_df_filtered is None or proj_df_filtered.empty)
+
+    _t = proj_df_filtered["tip"].replace("", "Nepoznato").fillna("Nepoznato").value_counts().reset_index()
     _t.columns = ["tip", "broj"]
     _bar = px.bar(_t, x="tip", y="broj", title="Projekti po tipu",
                   color="broj", color_continuous_scale="Teal")
     _bar.update_layout(xaxis_tickangle=-30, showlegend=False)
 
-    _tl = proj_df.dropna(subset=["pocetak"]).copy()
+    _tl = proj_df_filtered.dropna(subset=["pocetak"]).copy()
     _danas = pd.Timestamp.today().normalize()
     _tl["kraj_viz"] = _tl["kraj"].fillna(_danas)
 
     _charts = [mo.as_html(_bar)]
     if not _tl.empty:
-        _tl["label"] = _tl["akronim"].where(_tl["akronim"] != "", _tl["sifra"])
-        _gantt = px.timeline(_tl, x_start="pocetak", x_end="kraj_viz", y="label",
-                             color="tip", title=f"Timeline projekata ({len(_tl)})")
+        _gantt = px.timeline(
+            _tl,
+            x_start="pocetak", x_end="kraj_viz",
+            y="sifra",
+            color="tip",
+            hover_data={"naziv_hr": True, "akronim": True, "tip": True,
+                        "pocetak": True, "kraj": True, "sifra": False},
+            title=f"Timeline projekata ({len(_tl)})",
+        )
         _gantt.update_yaxes(autorange="reversed")
-        _gantt.update_layout(height=max(350, len(_tl) * 25))
+        _gantt.update_layout(height=max(350, len(_tl) * 22))
         _charts.append(mo.as_html(_gantt))
 
     mo.vstack(_charts)
@@ -385,10 +424,10 @@ def _proj_viz(mo, proj_df, px):
 
 
 @app.cell
-def _proj_table(mo, proj_df):
-    mo.stop(proj_df is None or proj_df.empty)
+def _proj_table(mo, proj_df_filtered):
+    mo.stop(proj_df_filtered is None or proj_df_filtered.empty)
     mo.md("### Tablica projekata")
-    mo.ui.dataframe(proj_df[["sifra", "akronim", "naziv_hr", "tip", "pocetak", "kraj", "total_cost", "currency"]])
+    mo.ui.dataframe(proj_df_filtered[["sifra", "akronim", "naziv_hr", "tip", "pocetak", "kraj", "total_cost", "currency"]])
     return
 
 
@@ -408,7 +447,11 @@ def _auth_header(mo):
 def _auth_inputs(mo):
     username_input = mo.ui.text(placeholder="korisničko ime", label="Korisničko ime")
     password_input = mo.ui.text(placeholder="lozinka", label="Lozinka", kind="password")
-    godina_input   = mo.ui.number(start=2000, stop=2030, step=1, value=2024, label="Godina (MOZVAG)")
+    godina_input   = mo.ui.dropdown(
+        options={str(g): g for g in range(2000, 2031)},
+        value="2024",
+        label="Godina (MOZVAG)",
+    )
     mo.hstack([username_input, password_input, godina_input], gap=2)
     return godina_input, password_input, username_input
 
@@ -493,7 +536,7 @@ def _mozvag_df(mo, mozvag_rows, pd):
 
 
 @app.cell
-def _mozvag_viz(mo, mozvag_df, px):
+def _mozvag_viz(mo, mozvag_df, pd, px):
     mo.stop(mozvag_df is None or mozvag_df.empty)
 
     _charts = []

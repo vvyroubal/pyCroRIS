@@ -27,6 +27,8 @@ class CrorisClient:
             backoff_factor=0.5,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["GET"],
+            read=False,     # ne ponavljaj na read timeout
+            connect=False,  # ne ponavljaj na connection timeout
         )
         adapter = HTTPAdapter(max_retries=retry)
         session.mount("https://", adapter)

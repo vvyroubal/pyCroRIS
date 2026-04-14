@@ -42,7 +42,7 @@ class Config:
         default_factory=lambda: int(os.getenv("CRORIS_PAGE_SIZE", "50"))
     )
     timeout: int = field(
-        default_factory=lambda: int(os.getenv("CRORIS_TIMEOUT", "60"))
+        default_factory=lambda: int(os.getenv("CRORIS_TIMEOUT", "120"))
     )
     max_retries: int = 3
 
