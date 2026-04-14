@@ -54,12 +54,12 @@ def _imports():
 def _load_ustanove(CrorisClient, get_sve_aktivne_ustanove):
     _client = CrorisClient()
     _all = get_sve_aktivne_ustanove(client=_client)
-    _sorted = sorted(_all, key=lambda u: u.puni_naziv or "")
+    _sorted = sorted(_all, key=lambda u: u.puni_naziv or u.kratki_naziv or "")
 
     ustanove_map = {str(u.id): u for u in _sorted}
     # Marimo dropdown: {label_za_prikaz: vrijednost_value}
     dropdown_options = {
-        f"{u.kratica or '?'} — {u.puni_naziv or 'Nepoznato'}": str(u.id)
+        f"{u.kratica or '?'} — {u.puni_naziv or u.kratki_naziv or 'Nepoznato'}": str(u.id)
         for u in _sorted
     }
     return ustanove_map, dropdown_options
@@ -106,7 +106,7 @@ def _ustanova_info(mo, ustanova_dropdown, ustanove_map):
     _kon = _u.kontakt
     _nad = _u.nad_ustanova
     _vrst = _u.vrsta_ustanove
-    _tip  = ", ".join(t.naziv or "" for t in (_u.tip_ustanova or [])) or "—"
+    _tip  = ", ".join(t.naziv or "" for t in (_u.tip_ustanove or [])) or "—"
     _adr_str = ", ".join(filter(None, [
         _adr.ulica_br if _adr else None,
         _adr.postanskI_broj if _adr else None,
@@ -116,7 +116,7 @@ def _ustanova_info(mo, ustanova_dropdown, ustanove_map):
     _web_md = f"[{_web}]({_web})" if _web else "—"
 
     mo.vstack([
-        mo.md(f"## {_u.puni_naziv or '—'}"),
+        mo.md(f"## {_u.puni_naziv or _u.kratki_naziv or '—'}"),
         mo.md(f"*{_u.puni_naziv_en}*") if _u.puni_naziv_en else mo.md(""),
         mo.hstack([
             mo.stat(label="Kratica",    value=_u.kratica or "—"),
