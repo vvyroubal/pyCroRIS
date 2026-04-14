@@ -352,8 +352,8 @@ def _proj_df(mo, pd, proj_list):
         "total_cost": "total_cost",
         "currency_code": "currency",
     })
-    proj_df["pocetak"] = pd.to_datetime(proj_df["pocetak"], errors="coerce")
-    proj_df["kraj"]    = pd.to_datetime(proj_df["kraj"],    errors="coerce")
+    proj_df["pocetak"] = pd.to_datetime(proj_df["pocetak"], dayfirst=True, errors="coerce")
+    proj_df["kraj"]    = pd.to_datetime(proj_df["kraj"],    dayfirst=True, errors="coerce")
     return (proj_df,)
 
 
@@ -487,8 +487,8 @@ def _mozvag_fetch(
 def _mozvag_df(mo, mozvag_rows, pd):
     mo.stop(not mozvag_rows)
     mozvag_df = pd.DataFrame(mozvag_rows)
-    mozvag_df["start_date"] = pd.to_datetime(mozvag_df["start_date"], errors="coerce")
-    mozvag_df["end_date"]   = pd.to_datetime(mozvag_df["end_date"],   errors="coerce")
+    mozvag_df["start_date"] = pd.to_datetime(mozvag_df["start_date"], dayfirst=True, errors="coerce")
+    mozvag_df["end_date"]   = pd.to_datetime(mozvag_df["end_date"],   dayfirst=True, errors="coerce")
     return (mozvag_df,)
 
 
