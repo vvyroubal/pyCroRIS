@@ -57,6 +57,7 @@ def _imports():
 def _header(mo):
     mo.md("""
     # CroRIS Explorer
+    >  autor: Vedran Vyroubal, vedran.vyroubal(at)vuka.hr
 
     Odaberi ustanovu za prikaz svih dostupnih podataka.
 
@@ -176,7 +177,7 @@ def _pub_header(CROSBI_BASE_URL, CrorisClient, mo, ustanova_dropdown):
             mo.md("---\n## Publikacije (CROSBI)"),
             mo.hstack([mo.stat(label="CROSBI publikacije", value=str(pub_count))], gap=3),
         ])
-    return pub_count, pub_error
+    return (pub_count,)
 
 
 @app.cell
@@ -184,7 +185,7 @@ def _pub_loader(mo, pub_count):
     pub_btn = mo.ui.run_button(label=f"Učitaj publikacije ({pub_count})")
     pub_refresh = mo.ui.checkbox(label="Prisilno osvježi (zaobiđi cache)")
     mo.vstack([pub_btn, pub_refresh])
-    return (pub_btn, pub_refresh)
+    return pub_btn, pub_refresh
 
 
 @app.cell
@@ -370,12 +371,12 @@ def _proj_loader(mo, ustanova_dropdown):
     proj_btn = mo.ui.run_button(label="Učitaj projekte")
     proj_refresh = mo.ui.checkbox(label="Prisilno osvježi (zaobiđi cache)")
     mo.vstack([proj_btn, proj_refresh])
-    return (proj_btn, proj_refresh)
+    return proj_btn, proj_refresh
 
 
 @app.cell
 def _proj_fetch(
-    CrorisClient,
+    ThreadPoolExecutor,
     get_projekti_po_ustanovi,
     mo,
     proj_btn,
@@ -569,7 +570,7 @@ def _oprema_loader(mo, ustanova_dropdown):
     oprema_btn = mo.ui.run_button(label="Učitaj opremu i usluge")
     oprema_refresh = mo.ui.checkbox(label="Prisilno osvježi (zaobiđi cache)")
     mo.vstack([oprema_btn, oprema_refresh])
-    return (oprema_btn, oprema_refresh)
+    return oprema_btn, oprema_refresh
 
 
 @app.cell
@@ -754,10 +755,10 @@ def _znan_inputs(mo, ustanova_dropdown):
 
 @app.cell
 def _znan_fetch(
+    CROSBI_BASE_URL,
     CrorisClient,
     ThreadPoolExecutor,
     as_completed,
-    CROSBI_BASE_URL,
     mo,
     znan_mbz_input,
     znan_search_btn,
@@ -818,12 +819,12 @@ def _znan_profile(mo, znan_data, znan_pubs):
     mo.vstack([
         mo.md(f"### {_titula} {_ime} {_prezime}".strip()),
         mo.md(f"""
-| Polje | Vrijednost |
-|---|---|
-| CROSBI ID | {znan_data.get("crorisId") or "—"} |
-| Funkcija | {_funkcija} |
-| Broj publikacija (CROSBI) | {len(_pubs)} |
-"""),
+    | Polje | Vrijednost |
+    |---|---|
+    | CROSBI ID | {znan_data.get("crorisId") or "—"} |
+    | Funkcija | {_funkcija} |
+    | Broj publikacija (CROSBI) | {len(_pubs)} |
+    """),
     ])
     return
 
