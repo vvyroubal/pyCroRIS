@@ -203,7 +203,16 @@ def _pub_fetch(
     import datetime as _dt_pub
     import json as _json_pub
     import os as _os_pub
+    import tempfile as _tempfile_pub
     import time as _time_pub
+
+    def _atomic_write_pub(path, data):
+        _dir = _os_pub.path.dirname(path)
+        with _tempfile_pub.NamedTemporaryFile("w", dir=_dir, delete=False, suffix=".tmp") as _tf:
+            _json_pub.dump(data, _tf, ensure_ascii=False)
+            _tf.flush()
+            _os_pub.fsync(_tf.fileno())
+        _os_pub.replace(_tf.name, path)
 
     mo.stop(ustanova_dropdown.value is None)
 
@@ -276,8 +285,7 @@ def _pub_fetch(
                         _done_pub += 1
                         _bar_pub.update(increment=1, subtitle=f"{_done_pub} / {_total_pub}")
 
-            with open(_cache_file_pub, "w") as _f:
-                _json_pub.dump(pub_rows, _f, ensure_ascii=False)
+            _atomic_write_pub(_cache_file_pub, pub_rows)
     except Exception as _e:
         _pub_err = str(_e)
 
@@ -387,7 +395,16 @@ def _proj_fetch(
     import datetime as _dt_p
     import json as _json_p
     import os as _os_p
+    import tempfile as _tempfile_p
     import time as _time_p
+
+    def _atomic_write_p(path, data):
+        _dir = _os_p.path.dirname(path)
+        with _tempfile_p.NamedTemporaryFile("w", dir=_dir, delete=False, suffix=".tmp") as _tf:
+            _json_p.dump(data, _tf, ensure_ascii=False)
+            _tf.flush()
+            _os_p.fsync(_tf.fileno())
+        _os_p.replace(_tf.name, path)
 
     mo.stop(ustanova_dropdown.value is None)
 
@@ -462,8 +479,7 @@ def _proj_fetch(
                         subtitle=f"100%  ·  {_time_p.time() - _t0_p:.0f}s",
                     )
             proj_rows = [_to_row(p) for p in _fetched]
-            with open(_cache_file_p, "w") as _f:
-                _json_p.dump(proj_rows, _f, ensure_ascii=False)
+            _atomic_write_p(_cache_file_p, proj_rows)
     except Exception as _e:
         proj_error = str(_e)
 
@@ -588,7 +604,16 @@ def _oprema_fetch(
     import datetime as _dt
     import json as _json
     import os as _os
+    import tempfile as _tempfile
     import time as _time
+
+    def _atomic_write(path, data):
+        _dir = _os.path.dirname(path)
+        with _tempfile.NamedTemporaryFile("w", dir=_dir, delete=False, suffix=".tmp") as _tf:
+            _json.dump(data, _tf, ensure_ascii=False)
+            _tf.flush()
+            _os.fsync(_tf.fileno())
+        _os.replace(_tf.name, path)
 
     mo.stop(ustanova_dropdown.value is None)
 
@@ -667,8 +692,7 @@ def _oprema_fetch(
                     "ustanova":  u.ustanova_naziv or "",
                     "aktivnost": u.aktivnost,
                 })
-            with open(_cache_file, "w") as _f:
-                _json.dump({"oprema": oprema_rows, "usluge": usluge_rows}, _f, ensure_ascii=False)
+            _atomic_write(_cache_file, {"oprema": oprema_rows, "usluge": usluge_rows})
     except Exception as _e:
         _err = str(_e)
 
