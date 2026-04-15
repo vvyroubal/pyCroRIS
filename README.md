@@ -21,6 +21,7 @@ Python klijent i interaktivna bilježnica za dohvat i vizualizaciju podataka iz 
 - [Konfiguracija](#konfiguracija)
 - [Struktura projekta](#struktura-projekta)
 - [Marimo bilježnica](#marimo-bilježnica)
+- [Docker](#docker)
 - [Programsko korištenje](#programsko-korištenje)
 - [Korištenje sučelja naredbenog retka](#korištenje-sučelja-naredbenog-retka)
 - [Testiranje](#testiranje)
@@ -64,7 +65,7 @@ CRORIS_PAGE_SIZE=50       # broj zapisa po stranici (5–100)
 CRORIS_TIMEOUT=30         # istek HTTP zahtjeva u sekundama
 ```
 
-Bilježnica radi bez vjerodajnica — svi korišteni endpointi su javni. Vjerodajnice su potrebne samo za neke programske pozive (npr. uvoz publikacija u CROSBI API).
+Bilježnica radi bez vjerodajnica — svi korišteni endpointi su javni.
 
 ---
 
@@ -107,10 +108,11 @@ pyCroRIS/
 │       └── csv_export.py
 ├── tests/
 │   ├── conftest.py
-│   ├── unit/                      # Jedinični testovi
+│   ├── unit/                      # Jedinični testovi (pokrivenost: 98%)
 │   └── integration/               # Integracijski testovi (zahtijevaju mrežni pristup)
 ├── notebook.py                    # Marimo interaktivna bilježnica
 ├── main.py                        # Ulazna točka sučelja naredbenog retka
+├── Dockerfile                     # Kontejner za pokretanje bilježnice
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── pyproject.toml
@@ -125,7 +127,7 @@ Interaktivna bilježnica za prikaz podataka odabrane CroRIS ustanove. Radi bez v
 
 ```bash
 marimo run notebook.py    # web aplikacija (http://localhost:2718)
-marimo edit notebook.py   # uredničku način rada
+marimo edit notebook.py   # urednički način rada
 ```
 
 ### Sekcije bilježnice
@@ -135,7 +137,7 @@ marimo edit notebook.py   # uredničku način rada
 | **Info kartica** | Ustanove API | Naziv, adresa, OIB, kontakt, čelnik, nadređena ustanova |
 | **Publikacije (CROSBI)** | CROSBI API | Broj publikacija, tablica s filtrom po godini, vizualizacije po vrsti i godini |
 | **Projekti (CroRIS)** | Projekti API | Tablica s filtrom po godini početka, stupčasti grafikon po tipu, Gantt timeline |
-| **Oprema (CroRIS)** | Oprema API | Popis opreme i usluga, grafikon po kategoriji |
+| **Oprema (CroRIS)** | Oprema API | Popis opreme i usluga, horizontalni grafikon po kategoriji |
 | **Znanstvenici** | CROSBI API | Pretraga profila po matičnom broju znanstvenika (MBZ), popis publikacija s detaljima |
 
 ### Predmemoriranje (cache)
@@ -145,6 +147,48 @@ Publikacije, projekti i oprema predmemoriraju se lokalno u direktorij `.cache/` 
 ### Napomena o brzini dohvata
 
 Dohvat opreme zahtijeva zasebni HTTP zahtjev za svaku stavku (N×1 zahtjevi); kod VUKA-e (~78 stavki) to traje oko 90 s. Projekti se dohvaćaju jednim sporim zahtjevom (~35 s). Oba dohvata prikazuju traku napretka i automatski se predmemoriraju — svaki sljedeći prikaz je trenutan.
+
+---
+
+## Docker
+
+Bilježnica se može pokrenuti unutar Docker kontejnera bez lokalnog postavljanja okruženja.
+
+### Izgradnja kontejnera
+
+```bash
+docker build -t crosbi-notebook .
+```
+
+### Pokretanje
+
+**Run mode** — web aplikacija samo za čitanje (zadano):
+
+```bash
+docker run -p 2718:2718 crosbi-notebook
+```
+
+**Edit mode** — urednički način rada s mogućnošću izmjene koda:
+
+```bash
+docker run -p 2718:2718 -e MODE=edit crosbi-notebook
+```
+
+Bilježnica je dostupna na `http://localhost:2718`.
+
+### Opcije montiranja
+
+**S `.env` datotekom** (za opcionalne vjerodajnice):
+
+```bash
+docker run -p 2718:2718 --env-file .env crosbi-notebook
+```
+
+**S trajnim cacheom** (podaci ostaju i nakon zaustavljanja kontejnera):
+
+```bash
+docker run -p 2718:2718 -v $(pwd)/.cache:/app/.cache crosbi-notebook
+```
 
 ---
 
@@ -260,7 +304,7 @@ python main.py mozvag osoba --mbz 123456 --godina 2024
 pip install -r requirements-dev.txt
 
 pytest tests/unit/                                         # sve jedinične provjere
-pytest tests/unit/ --cov=crosbi --cov-report=term-missing  # s pokrivenošću
+pytest tests/unit/ --cov=crosbi --cov-report=term-missing  # s pokrivenošću (98%)
 pytest -m "not integration"                                # preskoči integracijske
 ```
 
@@ -274,7 +318,9 @@ tests/
 │   │   ├── test_common.py
 │   │   ├── test_projekt.py
 │   │   ├── test_znanstvenik.py
-│   │   └── test_ostali_modeli.py
+│   │   ├── test_ostali_modeli.py
+│   │   ├── test_oprema.py
+│   │   └── test_publikacija_crosbi.py
 │   ├── endpoints/
 │   │   ├── test_projekti.py
 │   │   ├── test_casopisi.py
@@ -283,7 +329,11 @@ tests/
 │   │   ├── test_oprema.py
 │   │   ├── test_publikacije_crosbi.py
 │   │   ├── test_upisnik.py
-│   │   └── test_znanstvenici.py
+│   │   ├── test_znanstvenici.py
+│   │   ├── test_financijeri.py
+│   │   ├── test_osobe.py
+│   │   ├── test_publikacije.py
+│   │   └── test_ustanove_projekti.py
 │   ├── export/
 │   │   ├── test_json_export.py
 │   │   └── test_csv_export.py
