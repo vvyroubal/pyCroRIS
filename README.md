@@ -154,7 +154,7 @@ Publikacije, projekti i oprema predmemoriraju se lokalno u direktorij `.cache/` 
 
 ### Napomena o brzini dohvata
 
-Dohvat opreme zahtijeva zasebni HTTP zahtjev za svaku stavku (N×1 zahtjevi); kod VUKA-e (~78 stavki) to traje oko 90 s. Projekti se dohvaćaju jednim sporim zahtjevom (~35 s). Oba dohvata prikazuju traku napretka i automatski se predmemoriraju — svaki sljedeći prikaz je trenutan.
+Dohvat opreme zahtijeva zasebni HTTP zahtjev za svaku stavku (N×1 zahtjevi); npr. za ~78 stavki to traje oko 90 s. Projekti se dohvaćaju jednim sporim zahtjevom (~35 s). Oba dohvata prikazuju traku napretka i automatski se predmemoriraju — svaki sljedeći prikaz je trenutan.
 
 ---
 
@@ -479,6 +479,8 @@ Osnovna adresa za sve URL-ove: `https://www.croris.hr`
 **Wiki dokumentacija:** https://wiki.srce.hr/spaces/CRORIS/pages/49283931/Programska+su%C4%8Delja+CroRIS-a
 
 ---
+## Autor
+Vedran Vyroubal
 
 ## Licenca
 
