@@ -22,6 +22,7 @@ Python klijent i interaktivna bilježnica za dohvat i vizualizaciju podataka iz 
 - [Struktura projekta](#struktura-projekta)
 - [Marimo bilježnica](#marimo-bilježnica)
 - [Docker](#docker)
+- [Docker Compose — višekorisnički deployment s AD autentifikacijom](#docker-compose--višekorisnički-deployment-s-ad-autentifikacijom)
 - [Programsko korištenje](#programsko-korištenje)
 - [Korištenje sučelja naredbenog retka](#korištenje-sučelja-naredbenog-retka)
 - [Testiranje](#testiranje)
@@ -188,6 +189,115 @@ docker run -p 2718:2718 --env-file .env crosbi-notebook
 
 ```bash
 docker run -p 2718:2718 -v $(pwd)/.cache:/app/.cache crosbi-notebook
+```
+
+### Docker Compose — višekorisnički deployment s AD autentifikacijom
+
+Za produkcijski deployment koji omogućava višekorisničko korištenje bilježnice s autentifikacijom putem institucijskog Active Directory-ja. Arhitektura uključuje tri servisa: Nginx (reverse proxy + TLS), Authelia (autentifikacija prema AD/LDAP) i Marimo (bilježnica).
+
+```
+Internet → Nginx (443) → Authelia (provjera sesije) → Marimo (2718, interno)
+```
+
+#### Preduvjeti
+
+- Docker Engine i Docker Compose
+- TLS certifikat za domenu (`.pem` format)
+- Service account u Active Directory-ju s pravima čitanja korisnika
+
+#### Postavljanje
+
+**1. Tajni ključevi za Authelia**
+
+Kreirati `.env.docker` prema predlošku:
+
+```bash
+cp .env.docker.example .env.docker
+```
+
+Generirati nasumične vrijednosti za svaki ključ:
+
+```bash
+openssl rand -hex 32   # pokrenuti 3× — za SESSION_SECRET, STORAGE_ENCRYPTION_KEY i JWT_SECRET
+```
+
+Popuniti `.env.docker`:
+
+```dotenv
+AUTHELIA_SESSION_SECRET=<32+ znaka>
+AUTHELIA_STORAGE_ENCRYPTION_KEY=<32+ znaka>
+AUTHELIA_JWT_SECRET=<32+ znaka>
+AUTHELIA_LDAP_PASSWORD=<lozinka service accounta>
+```
+
+**2. TLS certifikat**
+
+Kopirati certifikat i privatni ključ u `docker/nginx/certs/`:
+
+```bash
+mkdir -p docker/nginx/certs
+cp /putanja/do/cert.pem docker/nginx/certs/cert.pem
+cp /putanja/do/key.pem  docker/nginx/certs/key.pem
+```
+
+Direktorij `docker/nginx/certs/` isključen je iz git repozitorija (`.gitignore`).
+
+**3. Konfiguracija Nginx**
+
+Urediti `docker/nginx/nginx.conf` — zamijeniti domenu na svim mjestima označenima s `# <-- zamijeniti`:
+
+```nginx
+server_name notebook.ustanova.hr;   # stvarna domena
+```
+
+**4. Konfiguracija Authelia**
+
+Urediti `docker/authelia/configuration.yml` — prilagoditi svim mjestima označenima s `# <-- zamijeniti`:
+
+| Parametar | Opis | Primjer |
+|---|---|---|
+| `address` | Adresa AD servera (LDAPS port 636) | `ldaps://ad.ustanova.hr:636` |
+| `base_dn` | Root Distinguished Name domene | `DC=ustanova,DC=hr` |
+| `additional_users_dn` | OU s korisnicima | `CN=Users` |
+| `additional_groups_dn` | OU s grupama | `CN=Users` |
+| `user` | DN service accounta | `CN=svc-croris,CN=Users,DC=ustanova,DC=hr` |
+| `domain` (session) | Domena kolačića | `notebook.ustanova.hr` |
+| `authelia_url` | Javna URL Authelia portala | `https://notebook.ustanova.hr/auth/` |
+
+Ako AD koristi self-signed certifikat (npr. testno okruženje), postaviti `tls.skip_verify: true` — ali ne u produkciji.
+
+**5. Pokretanje**
+
+```bash
+docker compose up -d
+```
+
+Bilježnica je dostupna na `https://notebook.ustanova.hr`. Korisnici se prijavljuju korisničkim imenom i lozinkom iz Active Directory-ja.
+
+#### Upravljanje
+
+```bash
+docker compose logs -f authelia   # praćenje logova autentifikacije
+docker compose logs -f marimo     # praćenje logova bilježnice
+docker compose restart marimo     # restart bilježnice (bez prekida sesija)
+docker compose down               # zaustavljanje svih servisa
+```
+
+#### Struktura konfiguracijskih datoteka
+
+```
+docker/
+├── nginx/
+│   ├── nginx.conf              # Nginx konfiguracija (reverse proxy + auth_request)
+│   └── certs/                  # TLS certifikati (nije u gitu)
+│       ├── cert.pem
+│       └── key.pem
+└── authelia/
+    ├── configuration.yml       # Authelia konfiguracija (LDAP, sesije, pristup)
+    └── db.sqlite3              # Authelia baza sesija (kreira se automatski)
+docker-compose.yml
+.env.docker                     # Tajni ključevi (nije u gitu)
+.env.docker.example             # Predložak
 ```
 
 ---
