@@ -1,0 +1,14 @@
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.env
+.cache/
+tests/
+docs/
+*.ipynb
+.git/
+.coverage
+htmlcov/
+output/
