@@ -27,6 +27,15 @@ def list_dogadanja(
         yield Dogadanje.from_dict(item)
 
 
+def get_dogadanja_ustanove(
+    ustanova_id: int, client: Optional[CrorisClient] = None
+) -> Generator[Dogadanje, None, None]:
+    """Generator koji prolazi sva događanja odabrane ustanove (automatska paginacija)."""
+    c = client or get_client()
+    for item in c.paginate(_url("/dogadanje"), "dogadanje", params={"ustanovaId": ustanova_id}):
+        yield Dogadanje.from_dict(item)
+
+
 def get_dogadanja_created_last_month(
     client: Optional[CrorisClient] = None,
 ) -> list[int]:

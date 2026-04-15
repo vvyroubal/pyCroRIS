@@ -46,6 +46,63 @@ def list_usluge(
         yield Usluga.from_dict(item)
 
 
+def get_oprema_hrefs(
+    ustanova_id: int, client: Optional[CrorisClient] = None
+) -> list[str]:
+    """Dohvati listu href URL-ova pridruzene opreme za odabranu ustanovu."""
+    c = client or get_client()
+    data = c.get(_url(f"/ustanova/{ustanova_id}"))
+    return [item["href"] for item in data.get("pridruzenaOprema", [])]
+
+
+def fetch_oprema_by_href(href: str) -> Oprema:
+    """Dohvati jednu opremu po punom URL-u (svaki poziv kreira vlastiti klijent)."""
+    return Oprema.from_dict(CrorisClient().get(href))
+
+
+def get_oprema_ustanove(
+    ustanova_id: int,
+    client: Optional[CrorisClient] = None,
+    max_workers: int = 10,
+) -> tuple[list[Oprema], list[str]]:
+    """Dohvati svu opremu odabrane ustanove paralelnim HTTP zahtjevima.
+
+    Returns:
+        (oprema_list, errors) — errors sadrži hrefs stavki koje su neuspješno dohvaćene.
+    """
+    import warnings
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    hrefs = get_oprema_hrefs(ustanova_id, client)
+    results: list[Oprema] = []
+    errors: list[str] = []
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {pool.submit(fetch_oprema_by_href, href): href for href in hrefs}
+        for future in as_completed(futures):
+            href = futures[future]
+            try:
+                results.append(future.result())
+            except Exception as exc:
+                warnings.warn(f"Neuspješan dohvat {href}: {exc}")
+                errors.append(href)
+    return results, errors
+
+
+def get_usluge_ustanove(
+    ustanova_id: int, client: Optional[CrorisClient] = None
+) -> Generator[Usluga, None, None]:
+    """Generator koji prolazi usluge odabrane ustanove.
+
+    API ne podržava server-side filter po ustanovi za usluge; dohvaćamo sve
+    (ukupno ~50) i filtriramo client-side po ustanova_id.
+    """
+    c = client or get_client()
+    for item in c.paginate(_url("/usluga"), "usluge"):
+        usluga = Usluga.from_dict(item)
+        if usluga.ustanova_id == ustanova_id:
+            yield usluga
+
+
 def get_usluge_opreme(
     oprema_id: int, client: Optional[CrorisClient] = None
 ) -> list[Usluga]:

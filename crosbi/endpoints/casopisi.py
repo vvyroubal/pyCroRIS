@@ -25,6 +25,15 @@ def list_casopisi(
         yield Casopis.from_dict(item)
 
 
+def get_casopisi_ustanove(
+    ustanova_id: int, client: Optional[CrorisClient] = None
+) -> Generator[Casopis, None, None]:
+    """Generator koji prolazi sve časopise odabrane ustanove (automatska paginacija)."""
+    c = client or get_client()
+    for item in c.paginate(_url("/casopis"), "casopis", params={"ustanovaId": ustanova_id}):
+        yield Casopis.from_dict(item)
+
+
 def get_casopisi_updated_last_month(
     client: Optional[CrorisClient] = None,
 ) -> list[int]:

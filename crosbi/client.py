@@ -21,11 +21,11 @@ class CrorisClient:
         session = requests.Session()
         if self.cfg.username and self.cfg.password:
             session.auth = (self.cfg.username, self.cfg.password)
-        session.headers.update({"Accept": "application/hal+json"})
+        session.headers.update({"Accept": "application/json, application/hal+json, */*"})
         retry = Retry(
             total=self.cfg.max_retries,
             backoff_factor=0.5,
-            status_forcelist=[429, 500, 502, 503, 504],
+            status_forcelist=[429, 502, 503, 504],
             allowed_methods=["GET"],
             read=False,     # ne ponavljaj na read timeout
             connect=False,  # ne ponavljaj na connection timeout
@@ -49,12 +49,16 @@ class CrorisClient:
         data = self.get(path, params=params)
         return data.get("_embedded", {}).get(key, [])
 
-    def paginate(self, path: str, key: str) -> Generator[dict, None, None]:
+    def paginate(
+        self, path: str, key: str, params: Optional[dict] = None
+    ) -> Generator[dict, None, None]:
         """Generator koji prolazi sve stranice paginiranog endpointa."""
         page = 1
         while True:
-            params = {"pageNumber": page, "pageSize": self.cfg.page_size}
-            data = self.get(path, params=params)
+            p = {"pageNumber": page, "pageSize": self.cfg.page_size}
+            if params:
+                p.update(params)
+            data = self.get(path, params=p)
             items: list = data.get("_embedded", {}).get(key, [])
             if not items:
                 break
