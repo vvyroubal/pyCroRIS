@@ -113,11 +113,18 @@ pyCroRIS/
 │   └── integration/               # Integracijski testovi (zahtijevaju mrežni pristup)
 ├── notebook.py                    # Marimo interaktivna bilježnica
 ├── main.py                        # Ulazna točka sučelja naredbenog retka
-├── Dockerfile                     # Kontejner za pokretanje bilježnice
+├── Dockerfile                     # Kontejner za pokretanje bilježnice (jednokorisnički)
+├── docker-compose.yml             # Višekorisnički deployment (Nginx + Authelia + Marimo)
+├── docker/
+│   ├── nginx/
+│   │   └── nginx.conf             # Nginx reverse proxy + WebSocket + auth_request
+│   └── authelia/
+│       └── configuration.yml      # Authelia konfiguracija (LDAP/AD, sesije, pristup)
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── pyproject.toml
-└── .env.example
+├── .env.example                   # Predložak za CroRIS vjerodajnice
+└── .env.docker.example            # Predložak za Authelia tajne ključeve
 ```
 
 ---
@@ -191,7 +198,7 @@ docker run -p 2718:2718 --env-file .env crosbi-notebook
 docker run -p 2718:2718 -v $(pwd)/.cache:/app/.cache crosbi-notebook
 ```
 
-### Docker Compose — višekorisnički deployment s AD autentifikacijom
+## Docker Compose — višekorisnički deployment s AD autentifikacijom
 
 Za produkcijski deployment koji omogućava višekorisničko korištenje bilježnice s autentifikacijom putem institucijskog Active Directory-ja. Arhitektura uključuje tri servisa: Nginx (reverse proxy + TLS), Authelia (autentifikacija prema AD/LDAP) i Marimo (bilježnica).
 
