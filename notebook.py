@@ -458,7 +458,7 @@ def _proj_fetch(
                 _last_pct = 0
                 with mo.status.progress_bar(
                     total=100,
-                    title="Dohvaćam projekte... (aproksimacija napretka)",
+                    title="Dohvaćam projekte... ",
                     subtitle="0%  ·  0s",
                     show_rate=False,
                     show_eta=False,
