@@ -12,3 +12,4 @@ docs/
 .coverage
 htmlcov/
 output/
+docker/

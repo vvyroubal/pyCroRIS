@@ -13,6 +13,7 @@ env/
 
 # Osjetljivi podaci
 .env
+.env.docker
 
 # Editor
 .idea/
@@ -31,6 +32,9 @@ htmlcov/
 
 # Claude Code
 .claude/
+
+# Docker TLS certifikati
+docker/nginx/certs/
 
 # Eksportrani podaci
 output/
