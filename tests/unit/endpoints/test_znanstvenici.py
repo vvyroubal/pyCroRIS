@@ -173,3 +173,25 @@ class TestGetOsobeLastMonth:
     def test_prazan_embedded(self, mock_client):
         mock_client.get.return_value = {}
         assert get_osobe_updated_last_month(client=mock_client) == []
+
+
+from crosbi.endpoints.znanstvenici import get_svi_znanstvenici
+from crosbi.config import ZNANSTVENICI_BASE_URL
+
+
+class TestGetSviZnanstvenici:
+    def test_poziva_ispravan_url(self, mock_client, znanstvenik_raw):
+        mock_client.get_embedded.return_value = [znanstvenik_raw]
+        get_svi_znanstvenici(client=mock_client)
+        mock_client.get_embedded.assert_called_once_with(
+            f"{ZNANSTVENICI_BASE_URL}/znanstvenik/collect", "znanstvenici"
+        )
+
+    def test_vraca_listu_znanstvenika(self, mock_client, znanstvenik_raw):
+        mock_client.get_embedded.return_value = [znanstvenik_raw]
+        result = get_svi_znanstvenici(client=mock_client)
+        assert all(isinstance(z, Znanstvenik) for z in result)
+
+    def test_prazan_odgovor(self, mock_client):
+        mock_client.get_embedded.return_value = []
+        assert get_svi_znanstvenici(client=mock_client) == []

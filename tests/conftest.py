@@ -301,6 +301,72 @@ def ustanova_reg_raw():
 
 
 @pytest.fixture
+def oprema_raw():
+    return {
+        "id": 77,
+        "model": "Model X",
+        "proizvodjac": "Siemens",
+        "inventarniBroj": "INV-001",
+        "godinaProizvodnje": 2019,
+        "datumNabave": "2019-06-01",
+        "nabavnaCijena": {"iznos": 50000.0, "jedinicaMjere": "kom", "valuta": "EUR"},
+        "prenosivost": False,
+        "radNaDaljinu": True,
+        "adresa": "Trg J.J. Strossmayera 2, Osijek",
+        "naziv": {"records": [{"langCode": "hr", "naziv": "Spektrometar"}, {"langCode": "en", "naziv": "Spectrometer"}]},
+        "kratkiNaziv": None,
+        "opciOpis": None,
+        "tehnickiOpis": None,
+        "kategorija": {"id": 3, "naziv": "srednja (od 55.000 do 400.000 EUR)"},
+        "stanjeOpreme": {"id": 1, "naziv": "ispravna"},
+        "nacinKoristenja": {"id": 2, "naziv": "javno dostupna"},
+        "ustanovaVlasnik": {"id": 10, "naziv": "IRB", "mbu": 1234567},
+        "ustanovaLokacija": {"id": 10, "naziv": "IRB", "mbu": 1234567},
+        "projekt": {"id": 5, "naziv": "Projekt X"},
+    }
+
+
+@pytest.fixture
+def usluga_cjenik_raw():
+    return {
+        "id": 9,
+        "vrstaKorisnika": {"id": 1, "naziv": "Akademska institucija"},
+        "cijena": {"iznos": 200.0, "jedinicaMjere": "analiza", "valuta": "EUR"},
+    }
+
+
+@pytest.fixture
+def publikacija_crosbi_raw():
+    return {
+        "crosbiId": 192111,
+        "bibIrbId": 625029,
+        "autori": "Horvat, Ivan; Kovač, Ana",
+        "naslov": "Testna publikacija",
+        "vrsta": "prilog u časopisu",
+        "tip": "izvorni znanstveni rad",
+        "casopis": "Test Journal",
+        "volumen": "Vol. 1",
+        "stranice": "1-10",
+        "doi": "10.1234/test",
+        "issn": "1234-5678",
+        "eissn": "8765-4321",
+        "isbn": None,
+        "godina": "2022",
+        "status": "objavljeno",
+        "izdavac": "Test Publisher",
+        "mjesto": "Zagreb",
+        "indeksiranost": ["WoS", "Scopus"],
+        "citati": [{"vrstaCitataId": 1, "vrstaCitataNaziv": "CROSBI", "citat": "Horvat, 2022"}],
+        "naslovi": [{"cfLangCode": "hr", "naziv": "Testna publikacija", "original": True}],
+        "sazeci": [],
+        "kljucneRijeci": [],
+        "poveznice": [{"urlId": 1, "urlVrstaId": 2, "urlVrstaNaziv": "DOI", "url": "https://doi.org/10.1234/test"}],
+        "skup": [],
+        "discipline": [{"id": 1, "naziv": "Fizika", "sifra": "1.03"}],
+    }
+
+
+@pytest.fixture
 def paginated_page1():
     """Prva stranica paginiranog odgovora s next linkom."""
     return {

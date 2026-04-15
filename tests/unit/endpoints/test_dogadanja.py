@@ -107,3 +107,36 @@ class TestGetPublikacijeDogadanja:
     def test_prazan_odgovor(self, mock_client):
         mock_client.get_embedded.return_value = []
         assert get_publikacije_dogadanja(55, client=mock_client) == []
+
+
+from crosbi.endpoints.dogadanja import get_dogadanja_ustanove, get_dogadanje_publikacije
+
+
+class TestGetDogadanjaUstanove:
+    def test_poziva_paginate_s_ispravnim_args(self, mock_client, dogadanje_raw):
+        mock_client.paginate.return_value = iter([dogadanje_raw])
+        list(get_dogadanja_ustanove(10, client=mock_client))
+        mock_client.paginate.assert_called_once_with(
+            f"{DOGADANJA_BASE_URL}/dogadanje", "dogadanje", params={"ustanovaId": 10}
+        )
+
+    def test_vraca_dogadanje_instancu(self, mock_client, dogadanje_raw):
+        mock_client.paginate.return_value = iter([dogadanje_raw])
+        result = list(get_dogadanja_ustanove(10, client=mock_client))
+        assert isinstance(result[0], Dogadanje)
+
+    def test_prazan_odgovor(self, mock_client):
+        mock_client.paginate.return_value = iter([])
+        assert list(get_dogadanja_ustanove(10, client=mock_client)) == []
+
+
+class TestGetDogadanjePublikacije:
+    def test_poziva_ispravan_url(self, mock_client):
+        mock_client.get.return_value = {"cfResPublId": 100}
+        get_dogadanje_publikacije(100, client=mock_client)
+        mock_client.get.assert_called_once_with(f"{DOGADANJA_BASE_URL}/publikacija/100")
+
+    def test_vraca_publikacija_dogadanje_instancu(self, mock_client):
+        mock_client.get.return_value = {"cfResPublId": 100}
+        result = get_dogadanje_publikacije(100, client=mock_client)
+        assert isinstance(result, PublikacijaDogadanje)
