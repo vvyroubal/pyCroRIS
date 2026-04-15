@@ -22,6 +22,10 @@ env/
 # OS
 .DS_Store
 
+# Pokrivenost koda (pytest-cov)
+.coverage
+htmlcov/
+
 # Marimo cache
 .marimo/
 
