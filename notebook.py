@@ -679,6 +679,7 @@ def _oprema_fetch(
                     "proizvodjac":   o.proizvodjac or "",
                     "inventarni_br": o.inventarni_broj or "",
                     "godina_proiz":  o.godina_proizvodnje,
+                    "datum_nabave":  o.datum_nabave or "",
                     "kategorija":    o.kategorija.naziv if o.kategorija else "",
                     "stanje":        o.stanje.naziv if o.stanje else "",
                     "ustanova":      o.ustanova_vlasnik.naziv if o.ustanova_vlasnik else "",
@@ -746,7 +747,7 @@ def _oprema_table(mo, oprema_df, usluge_df):
     _tabs = {}
     if not oprema_df.empty:
         _tabs["Oprema"] = mo.ui.dataframe(
-            oprema_df[["naziv_hr", "model", "proizvodjac", "kategorija", "stanje", "ustanova", "lokacija"]]
+            oprema_df[["naziv_hr", "model", "proizvodjac", "godina_proiz", "datum_nabave", "kategorija", "stanje", "ustanova", "lokacija"]]
         )
     if not usluge_df.empty:
         _tabs["Usluge"] = mo.ui.dataframe(
