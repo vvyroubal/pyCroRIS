@@ -41,3 +41,4 @@ output/
 *.csv
 *.json
 !.env.example
+.cache/
