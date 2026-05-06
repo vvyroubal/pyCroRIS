@@ -36,9 +36,9 @@ session:
   expiration: '8h'
   inactivity: '2h'
   cookies:
-    - domain: 'notebook.ustanova.hr'        # <-- zamijeniti
-      authelia_url: 'https://notebook.ustanova.hr/auth/'
-      default_redirection_url: 'https://notebook.ustanova.hr/'
+    - domain: '${DOMAIN}'
+      authelia_url: 'https://${DOMAIN}/auth/'
+      default_redirection_url: 'https://${DOMAIN}/'
 
 # --- Pohrana sesija (SQLite; za produkciju razmotriti PostgreSQL/MySQL) ---
 storage:

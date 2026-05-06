@@ -18,7 +18,7 @@ http {
 
     server {
         listen 443 ssl;
-        server_name notebook.ustanova.hr;  # <-- zamijeniti s pravim domenom
+        server_name ${DOMAIN};
 
         ssl_certificate     /etc/nginx/certs/cert.pem;
         ssl_certificate_key /etc/nginx/certs/key.pem;

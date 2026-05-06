@@ -117,7 +117,7 @@ pyCroRIS/
 ├── docker-compose.yml             # Višekorisnički deployment (Nginx + Authelia + Marimo)
 ├── docker/
 │   ├── nginx/
-│   │   └── nginx.conf             # Nginx reverse proxy + WebSocket + auth_request
+│   │   └── nginx.conf.template    # Nginx reverse proxy + WebSocket + auth_request
 │   └── authelia/
 │       └── configuration.yml      # Authelia konfiguracija (LDAP/AD, sesije, pristup)
 ├── requirements.txt
@@ -231,6 +231,7 @@ openssl rand -hex 32   # pokrenuti 3× — za SESSION_SECRET, STORAGE_ENCRYPTION
 Popuniti `.env.docker`:
 
 ```dotenv
+DOMAIN=notebook.ustanova.hr
 AUTHELIA_SESSION_SECRET=<32+ znaka>
 AUTHELIA_STORAGE_ENCRYPTION_KEY=<32+ znaka>
 AUTHELIA_JWT_SECRET=<32+ znaka>
@@ -251,11 +252,7 @@ Direktorij `docker/nginx/certs/` isključen je iz git repozitorija (`.gitignore`
 
 **3. Konfiguracija Nginx**
 
-Urediti `docker/nginx/nginx.conf` — zamijeniti domenu na svim mjestima označenima s `# <-- zamijeniti`:
-
-```nginx
-server_name notebook.ustanova.hr;   # stvarna domena
-```
+Nginx konfiguracija se automatski generira iz predloška `docker/nginx/nginx.conf.template` pri pokretanju. Domena se preuzima iz `DOMAIN` varijable u `.env.docker` — nije potrebno ručno uređivati konfiguracijske datoteke.
 
 **4. Konfiguracija Authelia**
 
@@ -268,8 +265,8 @@ Urediti `docker/authelia/configuration.yml` — prilagoditi svim mjestima označ
 | `additional_users_dn` | OU s korisnicima | `CN=Users` |
 | `additional_groups_dn` | OU s grupama | `CN=Users` |
 | `user` | DN service accounta | `CN=svc-croris,CN=Users,DC=ustanova,DC=hr` |
-| `domain` (session) | Domena kolačića | `notebook.ustanova.hr` |
-| `authelia_url` | Javna URL Authelia portala | `https://notebook.ustanova.hr/auth/` |
+
+Domena kolačića sesije (`domain`, `authelia_url`, `default_redirection_url`) se automatski preuzima iz `DOMAIN` varijable u `.env.docker`.
 
 Ako AD koristi self-signed certifikat (npr. testno okruženje), postaviti `tls.skip_verify: true` — ali ne u produkciji.
 
@@ -295,7 +292,7 @@ docker compose down               # zaustavljanje svih servisa
 ```
 docker/
 ├── nginx/
-│   ├── nginx.conf              # Nginx konfiguracija (reverse proxy + auth_request)
+│   ├── nginx.conf.template     # Nginx konfiguracija (reverse proxy + auth_request)
 │   └── certs/                  # TLS certifikati (nije u gitu)
 │       ├── cert.pem
 │       └── key.pem

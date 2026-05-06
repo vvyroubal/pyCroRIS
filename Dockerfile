@@ -13,6 +13,9 @@ RUN mkdir -p .cache
 
 EXPOSE 2718
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:2718')" || exit 1
+
 # Pokretanje: MODE=run (zadano) ili MODE=edit
 # Primjeri:
 #   docker run -p 2718:2718 crosbi-notebook
